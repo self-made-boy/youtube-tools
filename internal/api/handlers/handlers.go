@@ -71,9 +71,15 @@ func (h *Handler) GetVideoInfo(c *gin.Context) {
 		response.BadRequest(c, response.INVALID_REQUEST, err)
 		return
 	}
+	// 检查URL是否有效
+	url, _, err := h.ytdlp.CheckUrl(req.URL)
+	if err != nil {
+		response.BadRequest(c, response.INVALID_REQUEST, err)
+		return
+	}
 
 	// 获取视频信息
-	info, err := h.ytdlp.GetVideoInfo(req.URL)
+	info, err := h.ytdlp.GetVideoInfo(url)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, response.VIDEO_INFO_ERROR, err)
 		return
