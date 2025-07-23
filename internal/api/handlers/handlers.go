@@ -134,10 +134,16 @@ func (h *Handler) StartDownload(c *gin.Context) {
 
 // DownloadTaskStatusResp 表示下载任务状态的响应
 type DownloadTaskStatusResp struct {
-	TaskID   string  `json:"task_id"`
-	State    string  `json:"state"` // pending, downloading, completed, failed
-	Progress float64 `json:"progress"`
-	ETA      string  `json:"eta"`
+	// 任务ID
+	TaskID string `json:"task_id" example:"123456"`
+	// 下载状态
+	State string `json:"state" example:"pending, downloading, completed, failed"`
+	// 下载进度
+	Progress float64 `json:"progress" example:"0.5"`
+	// 预计时间
+	ETA string `json:"eta" example:"10s"`
+	// 下载文件路径
+	DownloadUrl string `json:"download_url" example:"https://xxx.com/123456.m4a"`
 }
 
 // GetDownloadStatus 处理获取下载状态请求

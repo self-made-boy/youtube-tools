@@ -202,18 +202,30 @@
         "handlers.DownloadTaskStatusResp": {
             "type": "object",
             "properties": {
+                "download_url": {
+                    "description": "下载文件路径",
+                    "type": "string",
+                    "example": "https://xxx.com/123456.m4a"
+                },
                 "eta": {
-                    "type": "string"
+                    "description": "预计时间",
+                    "type": "string",
+                    "example": "10s"
                 },
                 "progress": {
-                    "type": "number"
+                    "description": "下载进度",
+                    "type": "number",
+                    "example": 0.5
                 },
                 "state": {
-                    "description": "pending, downloading, completed, failed",
-                    "type": "string"
+                    "description": "下载状态",
+                    "type": "string",
+                    "example": "pending, downloading, completed, failed"
                 },
                 "task_id": {
-                    "type": "string"
+                    "description": "任务ID",
+                    "type": "string",
+                    "example": "123456"
                 }
             }
         },
@@ -250,6 +262,48 @@
                 "data": {},
                 "message": {
                     "type": "string"
+                }
+            }
+        },
+        "ytdlp.AudioFormat": {
+            "type": "object",
+            "properties": {
+                "asr": {
+                    "description": "采样率",
+                    "type": "string",
+                    "example": "44100"
+                },
+                "ext": {
+                    "description": "音频文件扩展名",
+                    "type": "string",
+                    "example": "m4a"
+                },
+                "filesize": {
+                    "description": "音频文件大小",
+                    "type": "integer",
+                    "example": 3145728
+                },
+                "format_id": {
+                    "description": "音频格式ID",
+                    "type": "string",
+                    "example": "140"
+                }
+            }
+        },
+        "ytdlp.AudioFormatGroup": {
+            "type": "object",
+            "properties": {
+                "ext": {
+                    "description": "音频文件扩展名",
+                    "type": "string",
+                    "example": "m4a"
+                },
+                "formats": {
+                    "description": "音频格式列表",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ytdlp.AudioFormat"
+                    }
                 }
             }
         },
@@ -302,7 +356,7 @@
                     "description": "音频格式",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/ytdlp.VideoFormatGroup"
+                        "$ref": "#/definitions/ytdlp.AudioFormatGroup"
                     }
                 },
                 "categories": {

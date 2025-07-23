@@ -2,14 +2,25 @@ basePath: /api/yt/
 definitions:
   handlers.DownloadTaskStatusResp:
     properties:
+      download_url:
+        description: 下载文件路径
+        example: https://xxx.com/123456.m4a
+        type: string
       eta:
+        description: 预计时间
+        example: 10s
         type: string
       progress:
+        description: 下载进度
+        example: 0.5
         type: number
       state:
-        description: pending, downloading, completed, failed
+        description: 下载状态
+        example: pending, downloading, completed, failed
         type: string
       task_id:
+        description: 任务ID
+        example: "123456"
         type: string
     type: object
   handlers.StartDownloadRequest:
@@ -35,6 +46,37 @@ definitions:
       data: {}
       message:
         type: string
+    type: object
+  ytdlp.AudioFormat:
+    properties:
+      asr:
+        description: 采样率
+        example: "44100"
+        type: string
+      ext:
+        description: 音频文件扩展名
+        example: m4a
+        type: string
+      filesize:
+        description: 音频文件大小
+        example: 3145728
+        type: integer
+      format_id:
+        description: 音频格式ID
+        example: "140"
+        type: string
+    type: object
+  ytdlp.AudioFormatGroup:
+    properties:
+      ext:
+        description: 音频文件扩展名
+        example: m4a
+        type: string
+      formats:
+        description: 音频格式列表
+        items:
+          $ref: '#/definitions/ytdlp.AudioFormat'
+        type: array
     type: object
   ytdlp.VideoFormat:
     properties:
@@ -72,7 +114,7 @@ definitions:
       audio:
         description: 音频格式
         items:
-          $ref: '#/definitions/ytdlp.VideoFormatGroup'
+          $ref: '#/definitions/ytdlp.AudioFormatGroup'
         type: array
       categories:
         description: 分类

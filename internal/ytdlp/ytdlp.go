@@ -87,7 +87,7 @@ type VideoInfo struct {
 	// 频道订阅数
 	ChannelFollowerCount int64 `json:"channel_follower_count" example:"2500000"`
 	// 音频格式
-	Audio []VideoFormatGroup `json:"audio"`
+	Audio []AudioFormatGroup `json:"audio"`
 	// 视频格式
 	Video []VideoFormatGroup `json:"video"`
 }
@@ -126,6 +126,10 @@ type AudioFormat struct {
 	FormatID string `json:"format_id" example:"140"`
 	// 音频文件扩展名
 	Ext string `json:"ext" example:"m4a"`
+
+	// 采样率
+	Asr string `json:"asr" example:"44100"`
+
 	// 音频文件大小
 	Filesize int64 `json:"filesize" example:"3145728"`
 }
@@ -267,6 +271,7 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 						FormatID: formatID,
 						Ext:      ext,
 						Filesize: filesize,
+						Asr:      getStringValue(formatMap, "asr"),
 					}
 					audioFormats[ext] = append(audioFormats[ext], audioFormat)
 				}
@@ -289,9 +294,9 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 	// 构建音频格式组列表
 	for ext, formats := range audioFormats {
 		if len(formats) > 0 {
-			audioGroup := VideoFormatGroup{
+			audioGroup := AudioFormatGroup{
 				Ext:     ext,
-				Formats: convertAudioToVideoFormats(formats),
+				Formats: formats,
 			}
 			info.Audio = append(info.Audio, audioGroup)
 		}
@@ -315,8 +320,14 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 func (s *Service) StartDownload(url, formatID string) (*DownloadTask, error) {
 	s.logger.Info("Starting download", zap.String("url", url), zap.String("format", formatID))
 
-	outputDir := filepath.Join(s.config.DownloadDir, url)
-	filename := url
+	// 检查URL是否有效
+	_, vid, err := s.CheckUrl(url)
+	if err != nil {
+		return nil, err
+	}
+
+	outputDir := filepath.Join(s.config.DownloadDir, vid)
+	filename := vid
 
 	// 确保输出目录存在
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
@@ -392,6 +403,36 @@ func (s *Service) CancelDownload(taskID string) error {
 }
 
 // runDownload 执行下载任务
+//
+// 实际执行的 yt-dlp 命令示例:
+//
+// 基本下载命令:
+//
+//	yt-dlp --newline --progress --no-playlist --restrict-filenames \
+//	       -o "/path/to/output/%(title)s.%(ext)s" \
+//	       "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+//
+// 指定格式下载:
+//
+//	yt-dlp --newline --progress --no-playlist --restrict-filenames \
+//	       -f "best[height<=720]" \
+//	       -o "/path/to/output/%(title)s.%(ext)s" \
+//	       "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+//
+// 自定义文件名下载:
+//
+//	yt-dlp --newline --progress --no-playlist --restrict-filenames \
+//	       -o "/path/to/output/my_video.%(ext)s" \
+//	       "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+//
+// 参数说明:
+//
+//	--newline: 每行输出进度信息
+//	--progress: 显示下载进度
+//	--no-playlist: 只下载单个视频，不下载播放列表
+//	--restrict-filenames: 限制文件名字符，避免特殊字符
+//	-f: 指定视频格式和质量
+//	-o: 指定输出文件路径和命名模板
 func (s *Service) runDownload(task *DownloadTask) {
 	s.logger.Info("Running download task", zap.String("task_id", task.ID))
 
@@ -641,19 +682,4 @@ func getStringArrayValue(data map[string]interface{}, key string) []string {
 	}
 
 	return result
-}
-
-// convertAudioToVideoFormats 将AudioFormat转换为VideoFormat
-func convertAudioToVideoFormats(audioFormats []AudioFormat) []VideoFormat {
-	var videoFormats []VideoFormat
-	for _, af := range audioFormats {
-		vf := VideoFormat{
-			FormatID:   af.FormatID,
-			Ext:        af.Ext,
-			Resolution: "audio only",
-			Filesize:   af.Filesize,
-		}
-		videoFormats = append(videoFormats, vf)
-	}
-	return videoFormats
 }
