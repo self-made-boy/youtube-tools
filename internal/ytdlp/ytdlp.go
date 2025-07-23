@@ -409,12 +409,14 @@ func (s *Service) CancelDownload(taskID string) error {
 // 基本下载命令:
 //
 //	yt-dlp --newline --progress --no-playlist --restrict-filenames \
+//	       --cookies /app/cookies.txt \
 //	       -o "/path/to/output/%(title)s.%(ext)s" \
 //	       "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 //
 // 指定格式下载:
 //
 //	yt-dlp --newline --progress --no-playlist --restrict-filenames \
+//	       --cookies /app/cookies.txt \
 //	       -f "best[height<=720]" \
 //	       -o "/path/to/output/%(title)s.%(ext)s" \
 //	       "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
@@ -422,6 +424,7 @@ func (s *Service) CancelDownload(taskID string) error {
 // 自定义文件名下载:
 //
 //	yt-dlp --newline --progress --no-playlist --restrict-filenames \
+//	       --cookies /app/cookies.txt \
 //	       -o "/path/to/output/my_video.%(ext)s" \
 //	       "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 //
@@ -431,6 +434,7 @@ func (s *Service) CancelDownload(taskID string) error {
 //	--progress: 显示下载进度
 //	--no-playlist: 只下载单个视频，不下载播放列表
 //	--restrict-filenames: 限制文件名字符，避免特殊字符
+//	--cookies: 指定cookies文件路径，用于访问需要登录的内容
 //	-f: 指定视频格式和质量
 //	-o: 指定输出文件路径和命名模板
 func (s *Service) runDownload(task *DownloadTask) {
@@ -451,6 +455,11 @@ func (s *Service) runDownload(task *DownloadTask) {
 		"--progress",
 		"--no-playlist",
 		"--restrict-filenames",
+	}
+
+	// 添加 cookies 文件
+	if s.config.CookiesPath != "" {
+		cmdArgs = append(cmdArgs, "--cookies", s.config.CookiesPath)
 	}
 
 	// 添加格式

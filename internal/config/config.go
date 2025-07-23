@@ -18,6 +18,7 @@ type Config struct {
 	YtdlpPath    string
 	FfmpegPath   string
 	DownloadDir  string
+	CookiesPath  string // cookies.txt 文件路径
 	MaxDownloads int
 	MaxFileSize  int64 // 单位：字节
 
@@ -49,6 +50,7 @@ func Load() (*Config, error) {
 		YtdlpPath:    getEnv("YTDLP_PATH", "/usr/bin/yt-dlp"),
 		FfmpegPath:   getEnv("FFMPEG_PATH", "/usr/bin/ffmpeg"),
 		DownloadDir:  getEnv("DOWNLOAD_DIR", "/app/downloads"),
+		CookiesPath:  getEnv("COOKIES_PATH", "/app/cookies.txt"),
 		MaxDownloads: maxDownloads,
 		MaxFileSize:  maxFileSize,
 		Env:          getEnv("ENV", "development"),
