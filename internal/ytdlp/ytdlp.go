@@ -234,11 +234,7 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 	}
 
 	// 处理分类信息
-	if categories, ok := rawInfo["categories"].([]interface{}); ok && len(categories) > 0 {
-		if category, ok := categories[0].(string); ok {
-			info.Categories = append(info.Categories, category)
-		}
-	}
+	info.Categories = getStringArrayValue(rawInfo, "categories")
 
 	// 提取标签信息
 	info.Tags = getStringArrayValue(rawInfo, "tags")
