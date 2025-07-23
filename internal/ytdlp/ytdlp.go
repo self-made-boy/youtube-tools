@@ -36,7 +36,6 @@ type DownloadTask struct {
 	ID        string             `json:"id"`
 	URL       string             `json:"url"`
 	Format    string             `json:"format"`
-	VideoID   string             `json:"video_id"`
 	State     string             `json:"state"` // pending, downloading, completed, failed
 	Progress  float64            `json:"progress"`
 	Speed     string             `json:"speed"`
@@ -325,38 +324,24 @@ func (s *Service) ParseAudioFormatID(formatID string) (ext string, asr int64, or
 }
 
 // ParseVideoFormatID 解析视频格式 ID，格式为 v__ext__resolution__vFormatID+aFormatID
-func (s *Service) ParseVideoFormatID(formatID string) (ext string, resolution string, vFormatID string, aFormatID string, err error) {
+func (s *Service) ParseVideoFormatID(formatID string) (ext string, resolution string, vaFormatID string, err error) {
 	parts := strings.Split(formatID, "__")
 	if len(parts) != 4 || parts[0] != "v" {
-		return "", "", "", "", fmt.Errorf("invalid video format ID: %s", formatID)
+		return "", "", "", fmt.Errorf("invalid video format ID: %s", formatID)
 	}
 
 	ext = parts[1]
 	resolution = parts[2]
 
 	// 处理 vFormatID+aFormatID 部分
-	lastPart := parts[3]
-	if strings.Contains(lastPart, "+") {
-		formatParts := strings.SplitN(lastPart, "+", 2)
-		vFormatID = formatParts[0]
-		aFormatID = formatParts[1]
-	} else {
-		vFormatID = lastPart
-		aFormatID = ""
-	}
+	vaFormatID = parts[3]
 
-	return ext, resolution, vFormatID, aFormatID, nil
+	return ext, resolution, vaFormatID, nil
 }
 
 // StartDownload 开始下载视频
 func (s *Service) StartDownload(url, formatID string) (*DownloadTask, error) {
 	s.logger.Info("Starting download", zap.String("url", url), zap.String("format", formatID))
-
-	// 检查URL是否有效
-	_, vid, err := s.CheckUrl(url)
-	if err != nil {
-		return nil, err
-	}
 
 	// 生成任务 ID
 	taskID := uuid.New().String()
@@ -367,7 +352,6 @@ func (s *Service) StartDownload(url, formatID string) (*DownloadTask, error) {
 	// 创建下载任务
 	task := &DownloadTask{
 		ID:        taskID,
-		VideoID:   vid,
 		URL:       url,
 		Format:    formatID,
 		State:     "pending",

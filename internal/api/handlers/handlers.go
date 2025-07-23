@@ -120,6 +120,18 @@ func (h *Handler) StartDownload(c *gin.Context) {
 		return
 	}
 
+	// 检查URL是否有效
+	_, _, err := h.ytdlp.CheckUrl(req.URL)
+	if err != nil {
+		response.BadRequest(c, response.INVALID_REQUEST, err)
+		return
+	}
+	_, _, _, audioErr := h.ytdlp.ParseAudioFormatID(req.FormatId)
+	_, _, _, videoErr := h.ytdlp.ParseVideoFormatID(req.FormatId)
+	if audioErr != nil && videoErr != nil {
+		response.BadRequest(c, response.INVALID_REQUEST, videoErr)
+		return
+	}
 	// 开始下载
 	task, err := h.ytdlp.StartDownload(req.URL, req.FormatId)
 	if err != nil {
