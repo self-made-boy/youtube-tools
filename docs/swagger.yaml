@@ -1,19 +1,6 @@
 basePath: /api/v1
 definitions:
-  handlers.StartDownloadRequest:
-    properties:
-      filename:
-        type: string
-      format:
-        type: string
-      output_dir:
-        type: string
-      url:
-        type: string
-    required:
-    - url
-    type: object
-  response.Response:
+  github_com_self-made-boy_youtube-tools_internal_api_response.Response:
     properties:
       code:
         type: string
@@ -21,7 +8,7 @@ definitions:
       message:
         type: string
     type: object
-  ytdlp.VideoFormat:
+  github_com_self-made-boy_youtube-tools_internal_ytdlp.VideoFormat:
     properties:
       ext:
         description: 文件扩展名
@@ -40,7 +27,7 @@ definitions:
         example: 1920x1080
         type: string
     type: object
-  ytdlp.VideoFormatGroup:
+  github_com_self-made-boy_youtube-tools_internal_ytdlp.VideoFormatGroup:
     properties:
       ext:
         description: 文件扩展名
@@ -49,15 +36,15 @@ definitions:
       formats:
         description: 格式列表
         items:
-          $ref: '#/definitions/ytdlp.VideoFormat'
+          $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_ytdlp.VideoFormat'
         type: array
     type: object
-  ytdlp.VideoInfo:
+  github_com_self-made-boy_youtube-tools_internal_ytdlp.VideoInfo:
     properties:
       audio:
         description: 音频格式
         items:
-          $ref: '#/definitions/ytdlp.VideoFormatGroup'
+          $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_ytdlp.VideoFormatGroup'
         type: array
       categories:
         description: 分类
@@ -126,7 +113,7 @@ definitions:
       video:
         description: 视频格式
         items:
-          $ref: '#/definitions/ytdlp.VideoFormatGroup'
+          $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_ytdlp.VideoFormatGroup'
         type: array
       view_count:
         description: 观看次数
@@ -136,6 +123,19 @@ definitions:
         description: 视频网页URL
         example: https://www.youtube.com/watch?v=dQw4w9WgXcQ
         type: string
+    type: object
+  internal_api_handlers.StartDownloadRequest:
+    properties:
+      filename:
+        type: string
+      format:
+        type: string
+      output_dir:
+        type: string
+      url:
+        type: string
+    required:
+    - url
     type: object
 host: localhost:8080
 info:
@@ -161,22 +161,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.StartDownloadRequest'
+          $ref: '#/definitions/internal_api_handlers.StartDownloadRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response'
       summary: 开始下载视频
       tags:
       - 下载
@@ -195,15 +195,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response'
       summary: 取消下载
       tags:
       - 下载
@@ -216,7 +216,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response'
       summary: 健康检查
       tags:
       - 系统
@@ -236,19 +236,19 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/response.Response'
+            - $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/ytdlp.VideoInfo'
+                  $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_ytdlp.VideoInfo'
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response'
       summary: 获取视频信息
       tags:
       - 视频
@@ -267,15 +267,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/response.Response'
+            $ref: '#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response'
       summary: 获取下载状态
       tags:
       - 下载

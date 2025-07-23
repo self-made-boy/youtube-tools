@@ -53,51 +53,80 @@ type DownloadTask struct {
 
 // VideoInfo 表示视频信息
 type VideoInfo struct {
-	ID                   string             `json:"id" example:"dQw4w9WgXcQ"` // 视频ID
-	WebpageURL           string             `json:"webpage_url" example:"https://www.youtube.com/watch?v=dQw4w9WgXcQ"` // 视频网页URL
-	Title                string             `json:"title" example:"Rick Astley - Never Gonna Give You Up"` // 视频标题
-	Description          string             `json:"description" example:"Official video for Never Gonna Give You Up"` // 视频描述
-	Duration             int                `json:"duration" example:"213"` // 视频时长
-	Thumbnail            string             `json:"thumbnail" example:"https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg"` // 视频缩略图
-	ViewCount            int64              `json:"view_count" example:"1000000"` // 观看次数
-	CommentCount         int64              `json:"comment_count" example:"50000"` // 评论数量
-	LikeCount            int64              `json:"like_count" example:"80000"` // 点赞数量
-	UploadDate           string             `json:"upload_date" example:"20091025"` // 上传日期
-	Uploader             string             `json:"uploader" example:"Rick Astley"` // 上传者
-	Categories           []string           `json:"categories" example:"[\"Music\"]"` // 分类
-	Tags                 []string           `json:"tags" example:"[\"rick astley\", \"never gonna give you up\", \"music\"]"` // 标签
-	ChannelName          string             `json:"channel" example:"Rick Astley"` // 频道名称
-	ChannelURL           string             `json:"channel_url" example:"https://www.youtube.com/channel/UCuAXFkgsw1L7xaCfnd5JJOw"` // 频道URL
-	ChannelFollowerCount int64              `json:"channel_follower_count" example:"2500000"` // 频道订阅数
-	Audio                []VideoFormatGroup `json:"audio"` // 音频格式
-	Video                []VideoFormatGroup `json:"video"` // 视频格式
+	// 视频ID
+	ID string `json:"id" example:"dQw4w9WgXcQ"`
+	// 视频网页URL
+	WebpageURL string `json:"webpage_url" example:"https://www.youtube.com/watch?v=dQw4w9WgXcQ"`
+	// 视频标题
+	Title string `json:"title" example:"Rick Astley - Never Gonna Give You Up"`
+	// 视频描述
+	Description string `json:"description" example:"Official video for Never Gonna Give You Up"`
+	// 视频时长
+	Duration int `json:"duration" example:"213"`
+	// 视频缩略图
+	Thumbnail string `json:"thumbnail" example:"https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg"`
+	// 观看次数
+	ViewCount int64 `json:"view_count" example:"1000000"`
+	// 评论数量
+	CommentCount int64 `json:"comment_count" example:"50000"`
+	// 点赞数量
+	LikeCount int64 `json:"like_count" example:"80000"`
+	// 上传日期
+	UploadDate string `json:"upload_date" example:"20091025"`
+	// 上传者
+	Uploader string `json:"uploader" example:"Rick Astley"`
+	// 分类
+	Categories []string `json:"categories" example:"[\"Music\"]"`
+	// 标签
+	Tags []string `json:"tags" example:"[\"rick astley\", \"never gonna give you up\", \"music\"]"`
+	// 频道名称
+	ChannelName string `json:"channel" example:"Rick Astley"`
+	// 频道URL
+	ChannelURL string `json:"channel_url" example:"https://www.youtube.com/channel/UCuAXFkgsw1L7xaCfnd5JJOw"`
+	// 频道订阅数
+	ChannelFollowerCount int64 `json:"channel_follower_count" example:"2500000"`
+	// 音频格式
+	Audio []VideoFormatGroup `json:"audio"`
+	// 视频格式
+	Video []VideoFormatGroup `json:"video"`
 }
 
 // VideoFormatGroup 表示视频按照后缀名分组格式
 type VideoFormatGroup struct {
-	Ext     string        `json:"ext" example:"mp4"` // 文件扩展名
-	Formats []VideoFormat `json:"formats"` // 格式列表
+	// 文件扩展名
+	Ext string `json:"ext" example:"mp4"`
+	// 格式列表
+	Formats []VideoFormat `json:"formats"`
 }
 
 // AudioFormatGroup 表示音频按照后缀名分组格式
 type AudioFormatGroup struct {
-	Ext     string        `json:"ext" example:"m4a"` // 音频文件扩展名
-	Formats []AudioFormat `json:"formats"` // 音频格式列表
+	// 音频文件扩展名
+	Ext string `json:"ext" example:"m4a"`
+	// 音频格式列表
+	Formats []AudioFormat `json:"formats"`
 }
 
 // VideoFormat 表示视频格式
 type VideoFormat struct {
-	FormatID   string `json:"format_id" example:"137"` // 格式ID
-	Ext        string `json:"ext" example:"mp4"` // 文件扩展名
-	Resolution string `json:"resolution" example:"1920x1080"` // 分辨率
-	Filesize   int64  `json:"filesize" example:"52428800"` // 文件大小
+	// 格式ID
+	FormatID string `json:"format_id" example:"137"`
+	// 文件扩展名
+	Ext string `json:"ext" example:"mp4"`
+	// 分辨率
+	Resolution string `json:"resolution" example:"1920x1080"`
+	// 文件大小
+	Filesize int64 `json:"filesize" example:"52428800"`
 }
 
 // AudioFormat 表示音频格式
 type AudioFormat struct {
-	FormatID string `json:"format_id" example:"140"` // 音频格式ID
-	Ext      string `json:"ext" example:"m4a"` // 音频文件扩展名
-	Filesize int64  `json:"filesize" example:"3145728"` // 音频文件大小
+	// 音频格式ID
+	FormatID string `json:"format_id" example:"140"`
+	// 音频文件扩展名
+	Ext string `json:"ext" example:"m4a"`
+	// 音频文件大小
+	Filesize int64 `json:"filesize" example:"3145728"`
 }
 
 // New 创建一个新的 yt-dlp 服务
