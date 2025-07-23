@@ -270,13 +270,11 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 }
 
 // StartDownload 开始下载视频
-func (s *Service) StartDownload(url, format, outputDir, filename string) (*DownloadTask, error) {
-	s.logger.Info("Starting download", zap.String("url", url), zap.String("format", format))
+func (s *Service) StartDownload(url, formatID string) (*DownloadTask, error) {
+	s.logger.Info("Starting download", zap.String("url", url), zap.String("format", formatID))
 
-	// 验证输出目录
-	if outputDir == "" {
-		outputDir = s.config.DownloadDir
-	}
+	outputDir := filepath.Join(s.config.DownloadDir, url)
+	filename := url
 
 	// 确保输出目录存在
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
@@ -294,7 +292,7 @@ func (s *Service) StartDownload(url, format, outputDir, filename string) (*Downl
 	task := &DownloadTask{
 		ID:        taskID,
 		URL:       url,
-		Format:    format,
+		Format:    formatID,
 		OutputDir: outputDir,
 		Filename:  filename,
 		State:     "pending",

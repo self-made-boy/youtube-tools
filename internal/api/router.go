@@ -36,22 +36,18 @@ func SetupRouter(cfg *config.Config, logger *zap.Logger) *gin.Engine {
 	h := handlers.New(cfg, logger, ytdlpService)
 
 	// API 路由组
-	api := router.Group("/api/v1")
+	api := router.Group("/api/yt/")
 	{
 		// 健康检查
 		api.GET("/health", h.HealthCheck)
 
-		// 视频信息
 		api.GET("/info", h.GetVideoInfo)
-
-		// 下载管理
 		api.POST("/download", h.StartDownload)
-		api.GET("/status/:task_id", h.GetDownloadStatus)
-		api.DELETE("/download/:task_id", h.CancelDownload)
+		api.GET("/download/status", h.GetDownloadStatus)
 	}
 
 	// Swagger 文档
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	router.GET("/api/yt/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return router
 }

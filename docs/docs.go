@@ -14,10 +14,6 @@ const docTemplate = `{
             "name": "API Support",
             "email": "support@example.com"
         },
-        "license": {
-            "name": "MIT",
-            "url": "https://opensource.org/licenses/MIT"
-        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -33,7 +29,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "下载"
+                    "youtube"
                 ],
                 "summary": "开始下载视频",
                 "parameters": [
@@ -51,7 +47,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/handlers.StartDownloadResp"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -69,22 +77,22 @@ const docTemplate = `{
                 }
             }
         },
-        "/download/{task_id}": {
-            "delete": {
-                "description": "取消指定任务 ID 的下载",
+        "/download/status": {
+            "get": {
+                "description": "获取指定任务 ID 的下载状态",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "下载"
+                    "youtube"
                 ],
-                "summary": "取消下载",
+                "summary": "获取下载状态",
                 "parameters": [
                     {
                         "type": "string",
                         "description": "任务 ID",
                         "name": "task_id",
-                        "in": "path",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -92,7 +100,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/handlers.DownloadTaskStatusResp"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -137,7 +157,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "视频"
+                    "youtube"
                 ],
                 "summary": "获取视频信息",
                 "parameters": [
@@ -182,66 +202,47 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/status/{task_id}": {
-            "get": {
-                "description": "获取指定任务 ID 的下载状态",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "下载"
-                ],
-                "summary": "获取下载状态",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "任务 ID",
-                        "name": "task_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
+        "handlers.DownloadTaskStatusResp": {
+            "type": "object",
+            "properties": {
+                "eta": {
+                    "type": "string"
+                },
+                "progress": {
+                    "type": "number"
+                },
+                "state": {
+                    "description": "pending, downloading, completed, failed",
+                    "type": "string"
+                },
+                "task_id": {
+                    "type": "string"
+                }
+            }
+        },
         "handlers.StartDownloadRequest": {
             "type": "object",
             "required": [
                 "url"
             ],
             "properties": {
-                "filename": {
-                    "type": "string"
-                },
-                "format": {
-                    "type": "string"
-                },
-                "output_dir": {
+                "format_id": {
+                    "description": "下载的格式",
                     "type": "string"
                 },
                 "url": {
+                    "description": "下载的url",
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.StartDownloadResp": {
+            "type": "object",
+            "properties": {
+                "task_id": {
                     "type": "string"
                 }
             }
@@ -423,10 +424,10 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8080",
-	BasePath:         "/api/v1",
+	BasePath:         "/api/yt/",
 	Schemes:          []string{},
 	Title:            "YouTube Tools API",
-	Description:      "A RESTful API service for YouTube video operations using yt-dlp",
+	Description:      "A RESTful API service for YouTube video operations",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

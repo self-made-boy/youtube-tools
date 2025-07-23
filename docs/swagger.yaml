@@ -1,17 +1,32 @@
-basePath: /api/v1
+basePath: /api/yt/
 definitions:
+  handlers.DownloadTaskStatusResp:
+    properties:
+      eta:
+        type: string
+      progress:
+        type: number
+      state:
+        description: pending, downloading, completed, failed
+        type: string
+      task_id:
+        type: string
+    type: object
   handlers.StartDownloadRequest:
     properties:
-      filename:
-        type: string
-      format:
-        type: string
-      output_dir:
+      format_id:
+        description: 下载的格式
         type: string
       url:
+        description: 下载的url
         type: string
     required:
     - url
+    type: object
+  handlers.StartDownloadResp:
+    properties:
+      task_id:
+        type: string
     type: object
   response.Response:
     properties:
@@ -142,10 +157,7 @@ info:
   contact:
     email: support@example.com
     name: API Support
-  description: A RESTful API service for YouTube video operations using yt-dlp
-  license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
+  description: A RESTful API service for YouTube video operations
   termsOfService: http://swagger.io/terms/
   title: YouTube Tools API
   version: "1.0"
@@ -168,7 +180,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/handlers.StartDownloadResp'
+              type: object
         "400":
           description: Bad Request
           schema:
@@ -179,13 +196,13 @@ paths:
             $ref: '#/definitions/response.Response'
       summary: 开始下载视频
       tags:
-      - 下载
-  /download/{task_id}:
-    delete:
-      description: 取消指定任务 ID 的下载
+      - youtube
+  /download/status:
+    get:
+      description: 获取指定任务 ID 的下载状态
       parameters:
       - description: 任务 ID
-        in: path
+        in: query
         name: task_id
         required: true
         type: string
@@ -195,7 +212,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/handlers.DownloadTaskStatusResp'
+              type: object
         "400":
           description: Bad Request
           schema:
@@ -204,9 +226,9 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/response.Response'
-      summary: 取消下载
+      summary: 获取下载状态
       tags:
-      - 下载
+      - youtube
   /health:
     get:
       description: 获取 API 服务的健康状态
@@ -251,34 +273,7 @@ paths:
             $ref: '#/definitions/response.Response'
       summary: 获取视频信息
       tags:
-      - 视频
-  /status/{task_id}:
-    get:
-      description: 获取指定任务 ID 的下载状态
-      parameters:
-      - description: 任务 ID
-        in: path
-        name: task_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/response.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/response.Response'
-      summary: 获取下载状态
-      tags:
-      - 下载
+      - youtube
 securityDefinitions:
   BasicAuth:
     type: basic

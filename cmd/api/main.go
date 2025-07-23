@@ -19,17 +19,14 @@ import (
 
 // @title           YouTube Tools API
 // @version         1.0
-// @description     A RESTful API service for YouTube video operations using yt-dlp
+// @description     A RESTful API service for YouTube video operations
 // @termsOfService  http://swagger.io/terms/
 
 // @contact.name   API Support
 // @contact.email  support@example.com
 
-// @license.name  MIT
-// @license.url   https://opensource.org/licenses/MIT
-
 // @host      localhost:8080
-// @BasePath  /api/v1
+// @BasePath  /api/yt/
 
 // @securityDefinitions.basic  BasicAuth
 func main() {

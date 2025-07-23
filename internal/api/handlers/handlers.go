@@ -58,7 +58,7 @@ type GetVideoInfoRequest struct {
 // GetVideoInfo 处理获取视频信息请求
 // @Summary 获取视频信息
 // @Description 获取指定 URL 的视频信息
-// @Tags 视频
+// @Tags youtube
 // @Produce json
 // @Param url query string true "视频 URL"
 // @Success 200 {object} response.Response{data=ytdlp.VideoInfo}
@@ -85,20 +85,25 @@ func (h *Handler) GetVideoInfo(c *gin.Context) {
 
 // StartDownloadRequest 表示开始下载的请求
 type StartDownloadRequest struct {
-	URL       string `json:"url" binding:"required"`
-	Format    string `json:"format" binding:"omitempty"`
-	OutputDir string `json:"output_dir" binding:"omitempty"`
-	Filename  string `json:"filename" binding:"omitempty"`
+	// 下载的url
+	URL string `json:"url" binding:"required"`
+	// 下载的格式
+	FormatId string `json:"format_id" binding:"omitempty"`
+}
+
+// StartDownloadResp 表示开始下载的响应
+type StartDownloadResp struct {
+	TaskID string `json:"task_id"`
 }
 
 // StartDownload 处理开始下载请求
 // @Summary 开始下载视频
 // @Description 开始下载指定 URL 的视频
-// @Tags 下载
+// @Tags youtube
 // @Accept json
 // @Produce json
 // @Param request body StartDownloadRequest true "下载请求"
-// @Success 200 {object} response.Response
+// @Success 200 {object} response.Response{data=StartDownloadResp}
 // @Failure 400 {object} response.Response
 // @Failure 500 {object} response.Response
 // @Router /download [post]
@@ -110,31 +115,38 @@ func (h *Handler) StartDownload(c *gin.Context) {
 	}
 
 	// 开始下载
-	task, err := h.ytdlp.StartDownload(req.URL, req.Format, req.OutputDir, req.Filename)
+	task, err := h.ytdlp.StartDownload(req.URL, req.FormatId)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, response.DOWNLOAD_ERROR, err)
 		return
 	}
 
-	response.Success(c, map[string]interface{}{
-		"task_id":  task.ID,
-		"filename": task.Filename,
-		"state":    task.State,
+	response.Success(c, StartDownloadResp{
+		TaskID: task.ID,
 	})
+}
+
+// DownloadTaskStatusResp 表示下载任务状态的响应
+type DownloadTaskStatusResp struct {
+	TaskID   string  `json:"task_id"`
+	State    string  `json:"state"` // pending, downloading, completed, failed
+	Progress float64 `json:"progress"`
+	ETA      string  `json:"eta"`
 }
 
 // GetDownloadStatus 处理获取下载状态请求
 // @Summary 获取下载状态
 // @Description 获取指定任务 ID 的下载状态
-// @Tags 下载
+// @Tags youtube
 // @Produce json
-// @Param task_id path string true "任务 ID"
-// @Success 200 {object} response.Response
+// @Param task_id query string true "任务 ID"
+// @Success 200 {object} response.Response{data=DownloadTaskStatusResp}
 // @Failure 400 {object} response.Response
 // @Failure 404 {object} response.Response
-// @Router /status/{task_id} [get]
+// @Router /download/status [get]
 func (h *Handler) GetDownloadStatus(c *gin.Context) {
-	taskID := c.Param("task_id")
+	taskID := c.Query("task_id")
+
 	if taskID == "" {
 		response.FailWithMessage(c, http.StatusBadRequest, response.INVALID_TASK_ID, "Task ID is required")
 		return
@@ -147,32 +159,10 @@ func (h *Handler) GetDownloadStatus(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, task)
-}
-
-// CancelDownload 处理取消下载请求
-// @Summary 取消下载
-// @Description 取消指定任务 ID 的下载
-// @Tags 下载
-// @Produce json
-// @Param task_id path string true "任务 ID"
-// @Success 200 {object} response.Response
-// @Failure 400 {object} response.Response
-// @Failure 404 {object} response.Response
-// @Router /download/{task_id} [delete]
-func (h *Handler) CancelDownload(c *gin.Context) {
-	taskID := c.Param("task_id")
-	if taskID == "" {
-		response.FailWithMessage(c, http.StatusBadRequest, response.INVALID_TASK_ID, "Task ID is required")
-		return
-	}
-
-	// 取消下载
-	err := h.ytdlp.CancelDownload(taskID)
-	if err != nil {
-		response.NotFound(c, response.TASK_NOT_FOUND, err)
-		return
-	}
-
-	response.SuccessWithMessage(c, "Download cancelled successfully", nil)
+	response.Success(c, DownloadTaskStatusResp{
+		TaskID:   task.ID,
+		State:    task.State,
+		Progress: task.Progress,
+		ETA:      task.ETA,
+	})
 }
