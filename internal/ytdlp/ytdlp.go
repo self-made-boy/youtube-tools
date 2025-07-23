@@ -188,13 +188,22 @@ func (s *Service) CheckUrl(urlStr string) (string, string, error) {
 func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 	s.logger.Info("Getting video info", zap.String("url", url))
 
-	// 构建命令
-	cmd := exec.Command(
-		s.config.YtdlpPath,
+	// 构建命令参数
+	cmdArgs := []string{
 		"--dump-json",
 		"--no-playlist",
-		url,
-	)
+	}
+
+	// 添加 cookies 文件
+	if s.config.CookiesPath != "" {
+		cmdArgs = append(cmdArgs, "--cookies", s.config.CookiesPath)
+	}
+
+	// 添加 URL
+	cmdArgs = append(cmdArgs, url)
+
+	// 构建命令
+	cmd := exec.Command(s.config.YtdlpPath, cmdArgs...)
 
 	// 执行命令并获取输出
 	output, err := cmd.Output()
@@ -202,7 +211,6 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 		s.logger.Error("Failed to get video info", zap.Error(err))
 		return nil, fmt.Errorf("failed to get video info: %w", err)
 	}
-
 	// 解析 JSON 输出
 	var rawInfo map[string]interface{}
 	if err := json.Unmarshal(output, &rawInfo); err != nil {
