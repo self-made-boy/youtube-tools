@@ -308,6 +308,38 @@ func buildVideoFormatID(ext string, resolution string, vFormatID string, aFormat
 	return fmt.Sprintf("v__%s__%s__%s%s", ext, resolution, vFormatID, aFormatID)
 }
 
+// parseAudioFormatID 解析音频格式 ID，格式为 a__ext__asr__formatID
+func parseAudioFormatID(formatID string) (ext string, asr int64, originalFormatID string, err error) {
+	parts := strings.Split(formatID, "__")
+	if len(parts) != 4 || parts[0] != "a" {
+		return "", 0, "", fmt.Errorf("invalid audio format ID: %s", formatID)
+	}
+
+	ext = parts[1]
+	asr, err = strconv.ParseInt(parts[2], 10, 64)
+	if err != nil {
+		return "", 0, "", fmt.Errorf("invalid asr value in format ID: %s", formatID)
+	}
+	originalFormatID = parts[3]
+	return ext, asr, originalFormatID, nil
+}
+
+// parseVideoFormatID 解析视频格式 ID，格式为 v__ext__resolution__vFormatID+aFormatID
+func parseVideoFormatID(formatID string) (ext string, resolution string, vaFormatID string, err error) {
+	parts := strings.Split(formatID, "__")
+	if len(parts) != 4 || parts[0] != "v" {
+		return "", "", "", fmt.Errorf("invalid video format ID: %s", formatID)
+	}
+
+	ext = parts[1]
+	resolution = parts[2]
+
+	// 处理 vFormatID+aFormatID 部分
+	vaFormatID = parts[3]
+
+	return ext, resolution, vaFormatID, nil
+}
+
 // StartDownload 开始下载视频
 func (s *Service) StartDownload(url, formatID string) (*DownloadTask, error) {
 	s.logger.Info("Starting download", zap.String("url", url), zap.String("format", formatID))

@@ -35,3 +35,72 @@ func TestService_CheckUrl(t *testing.T) {
 		t.Errorf("CheckUrl for invalid URL did not return error")
 	}
 }
+
+// TestParseAudioFormatID 测试parseAudioFormatID方法
+func TestParseAudioFormatID(t *testing.T) {
+	tests := []struct {
+		name           string
+		formatID       string
+		expectedExt    string
+		expectedAsr    int64
+		expectedFormat string
+		expectedError  bool
+	}{
+		{
+			name:           "valid audio format ID",
+			formatID:       "a__m4a__44100__140",
+			expectedExt:    "m4a",
+			expectedAsr:    44100,
+			expectedFormat: "140",
+			expectedError:  false,
+		},
+		{
+			name:           "valid audio format ID with webm",
+			formatID:       "a__webm__48000__251",
+			expectedExt:    "webm",
+			expectedAsr:    48000,
+			expectedFormat: "251",
+			expectedError:  false,
+		},
+		{
+			name:          "invalid format ID - wrong prefix",
+			formatID:      "v__m4a__44100__140",
+			expectedError: true,
+		},
+		{
+			name:          "invalid format ID - wrong parts count",
+			formatID:      "a__m4a__44100",
+			expectedError: true,
+		},
+		{
+			name:          "invalid format ID - invalid asr",
+			formatID:      "a__m4a__invalid__140",
+			expectedError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ext, asr, formatID, err := parseAudioFormatID(tt.formatID)
+			if tt.expectedError {
+				if err == nil {
+					t.Errorf("parseAudioFormatID() expected error but got none")
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("parseAudioFormatID() unexpected error: %v", err)
+				return
+			}
+			if ext != tt.expectedExt {
+				t.Errorf("parseAudioFormatID() ext = %v, want %v", ext, tt.expectedExt)
+			}
+			if asr != tt.expectedAsr {
+				t.Errorf("parseAudioFormatID() asr = %v, want %v", asr, tt.expectedAsr)
+			}
+			if formatID != tt.expectedFormat {
+				t.Errorf("parseAudioFormatID() formatID = %v, want %v", formatID, tt.expectedFormat)
+			}
+		})
+	}
+}
