@@ -36,8 +36,7 @@ type DownloadTask struct {
 	ID        string             `json:"id"`
 	URL       string             `json:"url"`
 	Format    string             `json:"format"`
-	OutputDir string             `json:"output_dir"`
-	Filename  string             `json:"filename"`
+	VideoID   string             `json:"video_id"`
 	State     string             `json:"state"` // pending, downloading, completed, failed
 	Progress  float64            `json:"progress"`
 	Speed     string             `json:"speed"`
@@ -326,15 +325,6 @@ func (s *Service) StartDownload(url, formatID string) (*DownloadTask, error) {
 		return nil, err
 	}
 
-	outputDir := filepath.Join(s.config.DownloadDir, vid)
-	filename := vid
-
-	// 确保输出目录存在
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		s.logger.Error("Failed to create output directory", zap.Error(err))
-		return nil, fmt.Errorf("failed to create output directory: %w", err)
-	}
-
 	// 生成任务 ID
 	taskID := uuid.New().String()
 
@@ -344,10 +334,9 @@ func (s *Service) StartDownload(url, formatID string) (*DownloadTask, error) {
 	// 创建下载任务
 	task := &DownloadTask{
 		ID:        taskID,
+		VideoID:   vid,
 		URL:       url,
 		Format:    formatID,
-		OutputDir: outputDir,
-		Filename:  filename,
 		State:     "pending",
 		Progress:  0,
 		Speed:     "0 B/s",
@@ -444,10 +433,8 @@ func (s *Service) runDownload(task *DownloadTask) {
 	task.State = "downloading"
 
 	// 构建输出文件名
-	outputTemplate := filepath.Join(task.OutputDir, "%(title)s.%(ext)s")
-	if task.Filename != "" {
-		outputTemplate = filepath.Join(task.OutputDir, task.Filename+".%(ext)s")
-	}
+	outputDir := s.config.DownloadDir
+	outputTemplate := filepath.Join(outputDir, "%(title)s.%(ext)s")
 
 	// 构建命令
 	cmdArgs := []string{
