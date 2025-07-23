@@ -53,20 +53,51 @@ type DownloadTask struct {
 
 // VideoInfo 表示视频信息
 type VideoInfo struct {
-	ID         string   `json:"id"`
-	Title      string   `json:"title"`
-	Uploader   string   `json:"uploader"`
-	Duration   int      `json:"duration"`
-	UploadDate string   `json:"upload_date"`
-	Formats    []Format `json:"formats"`
+	ID                   string             `json:"id"`
+	WebpageURL           string             `json:"webpage_url"`
+	Title                string             `json:"title"`                  // 标题
+	Description          string             `json:"description"`            // 描述信息
+	Duration             int                `json:"duration"`               // 时长（秒）
+	Thumbnail            string             `json:"thumbnail"`              // 封面图URL
+	ViewCount            int64              `json:"view_count"`             // 观看次数
+	CommentCount         int64              `json:"comment_count"`          // 评论次数
+	LikeCount            int64              `json:"like_count"`             // 收藏次数
+	UploadDate           string             `json:"upload_date"`            // 上传日期
+	Uploader             string             `json:"uploader"`               // 上传人
+	Categories           []string           `json:"categories"`             // 分类信息
+	Tags                 []string           `json:"tags"`                   // 标签信息
+	ChannelName          string             `json:"channel"`                // 频道名字
+	ChannelURL           string             `json:"channel_url"`            // 频道地址
+	ChannelFollowerCount int64              `json:"channel_follower_count"` // 频道订阅数
+	Audio                []VideoFormatGroup `json:"audio"`                  // 音频
+	Video                []VideoFormatGroup `json:"video"`                  // 视频
 }
 
-// Format 表示视频格式
-type Format struct {
+// VideoFormatGroup 表示视频按照后缀名分组格式
+type VideoFormatGroup struct {
+	Ext     string        `json:"ext"`
+	Formats []VideoFormat `json:"formats"`
+}
+
+// AudioFormatGroup 表示音频按照后缀名分组格式
+type AudioFormatGroup struct {
+	Ext     string        `json:"ext"`
+	Formats []AudioFormat `json:"formats"`
+}
+
+// VideoFormat 表示视频格式
+type VideoFormat struct {
 	FormatID   string `json:"format_id"`
 	Ext        string `json:"ext"`
 	Resolution string `json:"resolution"`
 	Filesize   int64  `json:"filesize"`
+}
+
+// Format 表示音频格式
+type AudioFormat struct {
+	FormatID string `json:"format_id"`
+	Ext      string `json:"ext"`
+	Filesize int64  `json:"filesize"`
 }
 
 // New 创建一个新的 yt-dlp 服务
@@ -107,26 +138,102 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 
 	// 提取所需信息
 	info := &VideoInfo{
-		ID:         getStringValue(rawInfo, "id"),
-		Title:      getStringValue(rawInfo, "title"),
-		Uploader:   getStringValue(rawInfo, "uploader"),
-		Duration:   getIntValue(rawInfo, "duration"),
-		UploadDate: getStringValue(rawInfo, "upload_date"),
-		Formats:    []Format{},
+		ID:           getStringValue(rawInfo, "id"),
+		WebpageURL:   getStringValue(rawInfo, "webpage_url"),
+		Title:        getStringValue(rawInfo, "title"),
+		Description:  getStringValue(rawInfo, "description"),
+		Duration:     getIntValue(rawInfo, "duration"),
+		Thumbnail:    getStringValue(rawInfo, "thumbnail"),
+		ViewCount:    getInt64Value(rawInfo, "view_count"),
+		CommentCount: getInt64Value(rawInfo, "comment_count"),
+		LikeCount:    getInt64Value(rawInfo, "like_count"),
+		UploadDate:   getStringValue(rawInfo, "upload_date"),
+		Uploader:     getStringValue(rawInfo, "uploader"),
+	}
+
+	// 处理分类信息
+	if categories, ok := rawInfo["categories"].([]interface{}); ok && len(categories) > 0 {
+		if category, ok := categories[0].(string); ok {
+			info.Categories = append(info.Categories, category)
+		}
+	}
+
+	// 提取标签信息
+	info.Tags = getStringArrayValue(rawInfo, "tags")
+
+	// 提取频道信息
+	info.ChannelName = getStringValue(rawInfo, "channel")
+	info.ChannelURL = getStringValue(rawInfo, "channel_url")
+
+	// 尝试获取频道订阅数
+	info.ChannelFollowerCount = getInt64Value(rawInfo, "channel_follower_count")
+	// 如果没有 channel_follower_count 字段，尝试 subscriber_count 字段
+	if info.ChannelFollowerCount == 0 {
+		info.ChannelFollowerCount = getInt64Value(rawInfo, "subscriber_count")
 	}
 
 	// 提取格式信息
+	audioFormats := make(map[string][]AudioFormat)
+	videoFormats := make(map[string][]VideoFormat)
+
 	if formatsRaw, ok := rawInfo["formats"].([]interface{}); ok {
 		for _, formatRaw := range formatsRaw {
 			if formatMap, ok := formatRaw.(map[string]interface{}); ok {
-				format := Format{
-					FormatID:   getStringValue(formatMap, "format_id"),
-					Ext:        getStringValue(formatMap, "ext"),
-					Resolution: getResolution(formatMap),
-					Filesize:   getInt64Value(formatMap, "filesize"),
+				formatID := getStringValue(formatMap, "format_id")
+				ext := getStringValue(formatMap, "ext")
+				filesize := getInt64Value(formatMap, "filesize")
+				vcodec := getStringValue(formatMap, "vcodec")
+				acodec := getStringValue(formatMap, "acodec")
+
+				// 跳过 storyboard 格式
+				if strings.Contains(getStringValue(formatMap, "format_note"), "storyboard") {
+					continue
 				}
-				info.Formats = append(info.Formats, format)
+
+				// 纯音频格式 (vcodec == "none" && acodec != "none")
+				if vcodec == "none" && acodec != "none" && acodec != "" {
+					audioFormat := AudioFormat{
+						FormatID: formatID,
+						Ext:      ext,
+						Filesize: filesize,
+					}
+					audioFormats[ext] = append(audioFormats[ext], audioFormat)
+				}
+
+				// 纯视频格式 (acodec == "none" && vcodec != "none")
+				if acodec == "none" && vcodec != "none" && vcodec != "" {
+					resolution := getResolution(formatMap)
+					videoFormat := VideoFormat{
+						FormatID:   formatID,
+						Ext:        ext,
+						Resolution: resolution,
+						Filesize:   filesize,
+					}
+					videoFormats[ext] = append(videoFormats[ext], videoFormat)
+				}
 			}
+		}
+	}
+
+	// 构建音频格式组列表
+	for ext, formats := range audioFormats {
+		if len(formats) > 0 {
+			audioGroup := VideoFormatGroup{
+				Ext:     ext,
+				Formats: convertAudioToVideoFormats(formats),
+			}
+			info.Audio = append(info.Audio, audioGroup)
+		}
+	}
+
+	// 构建视频格式组列表
+	for ext, formats := range videoFormats {
+		if len(formats) > 0 {
+			videoGroup := VideoFormatGroup{
+				Ext:     ext,
+				Formats: formats,
+			}
+			info.Video = append(info.Video, videoGroup)
 		}
 	}
 
@@ -450,4 +557,34 @@ func getResolution(data map[string]interface{}) string {
 	}
 
 	return "unknown"
+}
+
+// getStringArrayValue 从数据中提取字符串数组
+func getStringArrayValue(data map[string]interface{}, key string) []string {
+	var result []string
+
+	if value, ok := data[key].([]interface{}); ok {
+		for _, item := range value {
+			if strItem, ok := item.(string); ok {
+				result = append(result, strItem)
+			}
+		}
+	}
+
+	return result
+}
+
+// convertAudioToVideoFormats 将AudioFormat转换为VideoFormat
+func convertAudioToVideoFormats(audioFormats []AudioFormat) []VideoFormat {
+	var videoFormats []VideoFormat
+	for _, af := range audioFormats {
+		vf := VideoFormat{
+			FormatID:   af.FormatID,
+			Ext:        af.Ext,
+			Resolution: "audio only",
+			Filesize:   af.Filesize,
+		}
+		videoFormats = append(videoFormats, vf)
+	}
+	return videoFormats
 }
