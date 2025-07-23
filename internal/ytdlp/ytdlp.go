@@ -308,8 +308,8 @@ func buildVideoFormatID(ext string, resolution string, vFormatID string, aFormat
 	return fmt.Sprintf("v__%s__%s__%s%s", ext, resolution, vFormatID, aFormatID)
 }
 
-// parseAudioFormatID 解析音频格式 ID，格式为 a__ext__asr__formatID
-func parseAudioFormatID(formatID string) (ext string, asr int64, originalFormatID string, err error) {
+// ParseAudioFormatID 解析音频格式 ID，格式为 a__ext__asr__formatID
+func (s *Service) ParseAudioFormatID(formatID string) (ext string, asr int64, originalFormatID string, err error) {
 	parts := strings.Split(formatID, "__")
 	if len(parts) != 4 || parts[0] != "a" {
 		return "", 0, "", fmt.Errorf("invalid audio format ID: %s", formatID)
@@ -324,20 +324,28 @@ func parseAudioFormatID(formatID string) (ext string, asr int64, originalFormatI
 	return ext, asr, originalFormatID, nil
 }
 
-// parseVideoFormatID 解析视频格式 ID，格式为 v__ext__resolution__vFormatID+aFormatID
-func parseVideoFormatID(formatID string) (ext string, resolution string, vaFormatID string, err error) {
+// ParseVideoFormatID 解析视频格式 ID，格式为 v__ext__resolution__vFormatID+aFormatID
+func (s *Service) ParseVideoFormatID(formatID string) (ext string, resolution string, vFormatID string, aFormatID string, err error) {
 	parts := strings.Split(formatID, "__")
 	if len(parts) != 4 || parts[0] != "v" {
-		return "", "", "", fmt.Errorf("invalid video format ID: %s", formatID)
+		return "", "", "", "", fmt.Errorf("invalid video format ID: %s", formatID)
 	}
 
 	ext = parts[1]
 	resolution = parts[2]
 
 	// 处理 vFormatID+aFormatID 部分
-	vaFormatID = parts[3]
+	lastPart := parts[3]
+	if strings.Contains(lastPart, "+") {
+		formatParts := strings.SplitN(lastPart, "+", 2)
+		vFormatID = formatParts[0]
+		aFormatID = formatParts[1]
+	} else {
+		vFormatID = lastPart
+		aFormatID = ""
+	}
 
-	return ext, resolution, vaFormatID, nil
+	return ext, resolution, vFormatID, aFormatID, nil
 }
 
 // StartDownload 开始下载视频

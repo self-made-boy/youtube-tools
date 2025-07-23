@@ -36,8 +36,88 @@ func TestService_CheckUrl(t *testing.T) {
 	}
 }
 
-// TestParseAudioFormatID 测试parseAudioFormatID方法
+// TestParseVideoFormatID 测试ParseVideoFormatID方法
+func TestParseVideoFormatID(t *testing.T) {
+	// 创建测试服务实例
+	cfg := &config.Config{}
+	logger := zap.NewNop()
+	service := New(cfg, logger)
+
+	tests := []struct {
+		name               string
+		formatID           string
+		expectedExt        string
+		expectedResolution string
+		expectedVFormat    string
+		expectedAFormat    string
+		expectedError      bool
+	}{
+		{
+			name:               "valid video format ID with audio",
+			formatID:           "v__mp4__1920x1080__137+140",
+			expectedExt:        "mp4",
+			expectedResolution: "1920x1080",
+			expectedVFormat:    "137",
+			expectedAFormat:    "140",
+			expectedError:      false,
+		},
+		{
+			name:               "valid video format ID without audio",
+			formatID:           "v__webm__1280x720__136",
+			expectedExt:        "webm",
+			expectedResolution: "1280x720",
+			expectedVFormat:    "136",
+			expectedAFormat:    "",
+			expectedError:      false,
+		},
+		{
+			name:          "invalid format ID - wrong prefix",
+			formatID:      "a__mp4__1920x1080__137+140",
+			expectedError: true,
+		},
+		{
+			name:          "invalid format ID - wrong parts count",
+			formatID:      "v__mp4__1920x1080",
+			expectedError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ext, resolution, vFormatID, aFormatID, err := service.ParseVideoFormatID(tt.formatID)
+			if tt.expectedError {
+				if err == nil {
+					t.Errorf("ParseVideoFormatID() expected error but got none")
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("ParseVideoFormatID() unexpected error: %v", err)
+				return
+			}
+			if ext != tt.expectedExt {
+				t.Errorf("ParseVideoFormatID() ext = %v, want %v", ext, tt.expectedExt)
+			}
+			if resolution != tt.expectedResolution {
+				t.Errorf("ParseVideoFormatID() resolution = %v, want %v", resolution, tt.expectedResolution)
+			}
+			if vFormatID != tt.expectedVFormat {
+				t.Errorf("ParseVideoFormatID() vFormatID = %v, want %v", vFormatID, tt.expectedVFormat)
+			}
+			if aFormatID != tt.expectedAFormat {
+				t.Errorf("ParseVideoFormatID() aFormatID = %v, want %v", aFormatID, tt.expectedAFormat)
+			}
+		})
+	}
+}
+
+// TestParseAudioFormatID 测试ParseAudioFormatID方法
 func TestParseAudioFormatID(t *testing.T) {
+	// 创建测试服务实例
+	cfg := &config.Config{}
+	logger := zap.NewNop()
+	service := New(cfg, logger)
+
 	tests := []struct {
 		name           string
 		formatID       string
@@ -81,25 +161,25 @@ func TestParseAudioFormatID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ext, asr, formatID, err := parseAudioFormatID(tt.formatID)
+			ext, asr, formatID, err := service.ParseAudioFormatID(tt.formatID)
 			if tt.expectedError {
 				if err == nil {
-					t.Errorf("parseAudioFormatID() expected error but got none")
+					t.Errorf("ParseAudioFormatID() expected error but got none")
 				}
 				return
 			}
 			if err != nil {
-				t.Errorf("parseAudioFormatID() unexpected error: %v", err)
+				t.Errorf("ParseAudioFormatID() unexpected error: %v", err)
 				return
 			}
 			if ext != tt.expectedExt {
-				t.Errorf("parseAudioFormatID() ext = %v, want %v", ext, tt.expectedExt)
+				t.Errorf("ParseAudioFormatID() ext = %v, want %v", ext, tt.expectedExt)
 			}
 			if asr != tt.expectedAsr {
-				t.Errorf("parseAudioFormatID() asr = %v, want %v", asr, tt.expectedAsr)
+				t.Errorf("ParseAudioFormatID() asr = %v, want %v", asr, tt.expectedAsr)
 			}
 			if formatID != tt.expectedFormat {
-				t.Errorf("parseAudioFormatID() formatID = %v, want %v", formatID, tt.expectedFormat)
+				t.Errorf("ParseAudioFormatID() formatID = %v, want %v", formatID, tt.expectedFormat)
 			}
 		})
 	}
