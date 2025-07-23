@@ -61,7 +61,7 @@ type GetVideoInfoRequest struct {
 // @Tags 视频
 // @Produce json
 // @Param url query string true "视频 URL"
-// @Success 200 {object} response.Response
+// @Success 200 {object} response.Response{data=ytdlp.VideoInfo}
 // @Failure 400 {object} response.Response
 // @Failure 500 {object} response.Response
 // @Router /info [get]

@@ -21,6 +21,122 @@ definitions:
       message:
         type: string
     type: object
+  ytdlp.VideoFormat:
+    properties:
+      ext:
+        description: 文件扩展名
+        example: mp4
+        type: string
+      filesize:
+        description: 文件大小
+        example: 52428800
+        type: integer
+      format_id:
+        description: 格式ID
+        example: "137"
+        type: string
+      resolution:
+        description: 分辨率
+        example: 1920x1080
+        type: string
+    type: object
+  ytdlp.VideoFormatGroup:
+    properties:
+      ext:
+        description: 文件扩展名
+        example: mp4
+        type: string
+      formats:
+        description: 格式列表
+        items:
+          $ref: '#/definitions/ytdlp.VideoFormat'
+        type: array
+    type: object
+  ytdlp.VideoInfo:
+    properties:
+      audio:
+        description: 音频格式
+        items:
+          $ref: '#/definitions/ytdlp.VideoFormatGroup'
+        type: array
+      categories:
+        description: 分类
+        example:
+        - '["Music"]'
+        items:
+          type: string
+        type: array
+      channel:
+        description: 频道名称
+        example: Rick Astley
+        type: string
+      channel_follower_count:
+        description: 频道订阅数
+        example: 2500000
+        type: integer
+      channel_url:
+        description: 频道URL
+        example: https://www.youtube.com/channel/UCuAXFkgsw1L7xaCfnd5JJOw
+        type: string
+      comment_count:
+        description: 评论数量
+        example: 50000
+        type: integer
+      description:
+        description: 视频描述
+        example: Official video for Never Gonna Give You Up
+        type: string
+      duration:
+        description: 视频时长
+        example: 213
+        type: integer
+      id:
+        description: 视频ID
+        example: dQw4w9WgXcQ
+        type: string
+      like_count:
+        description: 点赞数量
+        example: 80000
+        type: integer
+      tags:
+        description: 标签
+        example:
+        - '["rick astley"'
+        - ' "never gonna give you up"'
+        - ' "music"]'
+        items:
+          type: string
+        type: array
+      thumbnail:
+        description: 视频缩略图
+        example: https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg
+        type: string
+      title:
+        description: 视频标题
+        example: Rick Astley - Never Gonna Give You Up
+        type: string
+      upload_date:
+        description: 上传日期
+        example: "20091025"
+        type: string
+      uploader:
+        description: 上传者
+        example: Rick Astley
+        type: string
+      video:
+        description: 视频格式
+        items:
+          $ref: '#/definitions/ytdlp.VideoFormatGroup'
+        type: array
+      view_count:
+        description: 观看次数
+        example: 1000000
+        type: integer
+      webpage_url:
+        description: 视频网页URL
+        example: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact:
@@ -119,7 +235,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/ytdlp.VideoInfo'
+              type: object
         "400":
           description: Bad Request
           schema:

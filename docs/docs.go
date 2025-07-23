@@ -153,7 +153,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ytdlp.VideoInfo"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -243,6 +255,159 @@ const docTemplate = `{
                 "data": {},
                 "message": {
                     "type": "string"
+                }
+            }
+        },
+        "ytdlp.VideoFormat": {
+            "type": "object",
+            "properties": {
+                "ext": {
+                    "description": "文件扩展名",
+                    "type": "string",
+                    "example": "mp4"
+                },
+                "filesize": {
+                    "description": "文件大小",
+                    "type": "integer",
+                    "example": 52428800
+                },
+                "format_id": {
+                    "description": "格式ID",
+                    "type": "string",
+                    "example": "137"
+                },
+                "resolution": {
+                    "description": "分辨率",
+                    "type": "string",
+                    "example": "1920x1080"
+                }
+            }
+        },
+        "ytdlp.VideoFormatGroup": {
+            "type": "object",
+            "properties": {
+                "ext": {
+                    "description": "文件扩展名",
+                    "type": "string",
+                    "example": "mp4"
+                },
+                "formats": {
+                    "description": "格式列表",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ytdlp.VideoFormat"
+                    }
+                }
+            }
+        },
+        "ytdlp.VideoInfo": {
+            "type": "object",
+            "properties": {
+                "audio": {
+                    "description": "音频格式",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ytdlp.VideoFormatGroup"
+                    }
+                },
+                "categories": {
+                    "description": "分类",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"Music\"]"
+                    ]
+                },
+                "channel": {
+                    "description": "频道名称",
+                    "type": "string",
+                    "example": "Rick Astley"
+                },
+                "channel_follower_count": {
+                    "description": "频道订阅数",
+                    "type": "integer",
+                    "example": 2500000
+                },
+                "channel_url": {
+                    "description": "频道URL",
+                    "type": "string",
+                    "example": "https://www.youtube.com/channel/UCuAXFkgsw1L7xaCfnd5JJOw"
+                },
+                "comment_count": {
+                    "description": "评论数量",
+                    "type": "integer",
+                    "example": 50000
+                },
+                "description": {
+                    "description": "视频描述",
+                    "type": "string",
+                    "example": "Official video for Never Gonna Give You Up"
+                },
+                "duration": {
+                    "description": "视频时长",
+                    "type": "integer",
+                    "example": 213
+                },
+                "id": {
+                    "description": "视频ID",
+                    "type": "string",
+                    "example": "dQw4w9WgXcQ"
+                },
+                "like_count": {
+                    "description": "点赞数量",
+                    "type": "integer",
+                    "example": 80000
+                },
+                "tags": {
+                    "description": "标签",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"rick astley\"",
+                        " \"never gonna give you up\"",
+                        " \"music\"]"
+                    ]
+                },
+                "thumbnail": {
+                    "description": "视频缩略图",
+                    "type": "string",
+                    "example": "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg"
+                },
+                "title": {
+                    "description": "视频标题",
+                    "type": "string",
+                    "example": "Rick Astley - Never Gonna Give You Up"
+                },
+                "upload_date": {
+                    "description": "上传日期",
+                    "type": "string",
+                    "example": "20091025"
+                },
+                "uploader": {
+                    "description": "上传者",
+                    "type": "string",
+                    "example": "Rick Astley"
+                },
+                "video": {
+                    "description": "视频格式",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ytdlp.VideoFormatGroup"
+                    }
+                },
+                "view_count": {
+                    "description": "观看次数",
+                    "type": "integer",
+                    "example": 1000000
+                },
+                "webpage_url": {
+                    "description": "视频网页URL",
+                    "type": "string",
+                    "example": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
                 }
             }
         }
