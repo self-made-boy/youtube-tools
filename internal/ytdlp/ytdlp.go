@@ -115,8 +115,6 @@ type VideoFormat struct {
 	Ext string `json:"ext" example:"mp4"`
 	// 分辨率
 	Resolution string `json:"resolution" example:"1920x1080"`
-	// 文件大小
-	Filesize int64 `json:"filesize" example:"52428800"`
 }
 
 // AudioFormat 表示音频格式
@@ -127,10 +125,7 @@ type AudioFormat struct {
 	Ext string `json:"ext" example:"m4a"`
 
 	// 采样率
-	Asr string `json:"asr" example:"44100"`
-
-	// 音频文件大小
-	Filesize int64 `json:"filesize" example:"3145728"`
+	Asr int64 `json:"asr" example:"44100"`
 }
 
 // New 创建一个新的 yt-dlp 服务
@@ -251,65 +246,46 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 	}
 
 	// 提取格式信息
-	audioFormats := make(map[string][]AudioFormat)
-	videoFormats := make(map[string][]VideoFormat)
+	optimalAudioFormats, optimalVideoFormats := s.extractOptimalFormats(rawInfo)
 
-	if formatsRaw, ok := rawInfo["formats"].([]interface{}); ok {
-		for _, formatRaw := range formatsRaw {
-			if formatMap, ok := formatRaw.(map[string]interface{}); ok {
-				formatID := getStringValue(formatMap, "format_id")
-				ext := getStringValue(formatMap, "ext")
-				filesize := getInt64Value(formatMap, "filesize")
-				vcodec := getStringValue(formatMap, "vcodec")
-				acodec := getStringValue(formatMap, "acodec")
-
-				// 跳过 storyboard 格式
-				if strings.Contains(getStringValue(formatMap, "format_note"), "storyboard") {
-					continue
-				}
-
-				// 纯音频格式 (vcodec == "none" && acodec != "none")
-				if vcodec == "none" && acodec != "none" && acodec != "" {
-					audioFormat := AudioFormat{
-						FormatID: formatID,
-						Ext:      ext,
-						Filesize: filesize,
-						Asr:      getStringValue(formatMap, "asr"),
-					}
-					audioFormats[ext] = append(audioFormats[ext], audioFormat)
-				}
-
-				// 纯视频格式 (acodec == "none" && vcodec != "none")
-				if acodec == "none" && vcodec != "none" && vcodec != "" {
-					resolution := getResolution(formatMap)
-					videoFormat := VideoFormat{
-						FormatID:   formatID,
-						Ext:        ext,
-						Resolution: resolution,
-						Filesize:   filesize,
-					}
-					videoFormats[ext] = append(videoFormats[ext], videoFormat)
-				}
-			}
-		}
-	}
+	maxAsr := int64(0)
+	maxAFormatId := ""
 
 	// 构建音频格式组列表
-	for ext, formats := range audioFormats {
-		if len(formats) > 0 {
-			audioGroup := AudioFormatGroup{
-				Ext:     ext,
-				Formats: formats,
+	for _, afe := range s.config.AudioFormats {
+		formats := []AudioFormat{}
+		for _, af := range optimalAudioFormats {
+			formats = append(formats, AudioFormat{
+				FormatID: buildAudioFormatID(afe, af.Asr, af.FormatID),
+				Ext:      afe,
+				Asr:      af.Asr,
+			})
+			if af.Asr > maxAsr {
+				maxAsr = af.Asr
+				maxAFormatId = af.FormatID
 			}
-			info.Audio = append(info.Audio, audioGroup)
+		}
+		if len(formats) > 0 {
+			info.Audio = append(info.Audio, AudioFormatGroup{
+				Ext:     afe,
+				Formats: formats,
+			})
 		}
 	}
 
 	// 构建视频格式组列表
-	for ext, formats := range videoFormats {
+	for _, vfe := range s.config.VideoFormats {
+		formats := []VideoFormat{}
+		for _, vf := range optimalVideoFormats {
+			formats = append(formats, VideoFormat{
+				FormatID:   buildVideoFormatID(vfe, vf.Resolution, vf.FormatID, maxAFormatId),
+				Ext:        vfe,
+				Resolution: vf.Resolution,
+			})
+		}
 		if len(formats) > 0 {
 			videoGroup := VideoFormatGroup{
-				Ext:     ext,
+				Ext:     vfe,
 				Formats: formats,
 			}
 			info.Video = append(info.Video, videoGroup)
@@ -317,6 +293,19 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 	}
 
 	return info, nil
+}
+
+// buildAudioFormatID 构建音频格式 ID，格式为 a__ext__asr__formatID
+func buildAudioFormatID(ext string, asr int64, formatID string) string {
+	return fmt.Sprintf("a__%s__%d__%s", ext, asr, formatID)
+}
+
+// buildVideoFormatID 构建视频格式 ID，格式为 v__ext__resolution__vFormatID+aFormatID
+func buildVideoFormatID(ext string, resolution string, vFormatID string, aFormatID string) string {
+	if aFormatID != "" {
+		aFormatID = "+" + aFormatID
+	}
+	return fmt.Sprintf("v__%s__%s__%s%s", ext, resolution, vFormatID, aFormatID)
 }
 
 // StartDownload 开始下载视频
@@ -682,4 +671,155 @@ func getStringArrayValue(data map[string]interface{}, key string) []string {
 	}
 
 	return result
+}
+
+// extractOptimalFormats 提取音频和视频的最优格式
+// 音频按采样率分组，视频按分辨率分组，相同条件下选择最高质量的
+func (s *Service) extractOptimalFormats(rawInfo map[string]interface{}) ([]AudioFormat, []VideoFormat) {
+	// 用于存储按采样率分组的音频格式原始数据
+	audioByAsr := make(map[string]map[string]interface{})
+	// 用于存储按分辨率分组的视频格式原始数据
+	videoByResolution := make(map[string]map[string]interface{})
+
+	if formatsRaw, ok := rawInfo["formats"].([]interface{}); ok {
+		for _, formatRaw := range formatsRaw {
+			if formatMap, ok := formatRaw.(map[string]interface{}); ok {
+				vcodec := getStringValue(formatMap, "vcodec")
+				acodec := getStringValue(formatMap, "acodec")
+
+				// 跳过 storyboard 格式
+				if strings.Contains(getStringValue(formatMap, "format_note"), "storyboard") {
+					continue
+				}
+
+				// 处理纯音频格式 (vcodec == "none" && acodec != "none")
+				if vcodec == "none" && acodec != "none" && acodec != "" {
+					asr := getInt64Value(formatMap, "asr")
+					if asr == 0 {
+						// asr字段为0时跳过该格式
+						continue
+					}
+
+					// 使用asr数值作为key
+					asrKey := fmt.Sprintf("%d", asr)
+					// 检查是否已存在相同采样率的格式
+					if existingMap, exists := audioByAsr[asrKey]; exists {
+						// 比较质量，选择更好的格式
+						if s.isAudioFormatMapBetter(formatMap, existingMap) {
+							audioByAsr[asrKey] = formatMap
+						}
+					} else {
+						audioByAsr[asrKey] = formatMap
+					}
+				}
+
+				// 处理纯视频格式 (acodec == "none" && vcodec != "none")
+				if acodec == "none" && vcodec != "none" && vcodec != "" {
+					resolution := getResolution(formatMap)
+					if resolution == "" {
+						resolution = "unknown"
+					}
+
+					// 检查是否已存在相同分辨率的格式
+					if existingMap, exists := videoByResolution[resolution]; exists {
+						// 比较质量，选择更好的格式
+						if s.isVideoFormatMapBetter(formatMap, existingMap) {
+							videoByResolution[resolution] = formatMap
+						}
+					} else {
+						videoByResolution[resolution] = formatMap
+					}
+				}
+			}
+		}
+	}
+
+	// 将map转换为slice，同时转换为目标结构体
+	var audioFormats []AudioFormat
+	for _, formatMap := range audioByAsr {
+		audioFormat := AudioFormat{
+			FormatID: getStringValue(formatMap, "format_id"),
+			Ext:      getStringValue(formatMap, "ext"),
+			Asr:      getInt64Value(formatMap, "asr"),
+		}
+		audioFormats = append(audioFormats, audioFormat)
+	}
+
+	var videoFormats []VideoFormat
+	for _, formatMap := range videoByResolution {
+		videoFormat := VideoFormat{
+			FormatID:   getStringValue(formatMap, "format_id"),
+			Ext:        getStringValue(formatMap, "ext"),
+			Resolution: getResolution(formatMap),
+		}
+		videoFormats = append(videoFormats, videoFormat)
+	}
+
+	return audioFormats, videoFormats
+}
+
+// isAudioFormatMapBetter 比较两个音频格式的质量（基于原始formatMap）
+// 返回 true 表示 a 比 b 更好
+func (s *Service) isAudioFormatMapBetter(a, b map[string]interface{}) bool {
+	// 1. 优先比较比特率（abr字段）
+	aAbr := getInt64Value(a, "abr")
+	bAbr := getInt64Value(b, "abr")
+	if aAbr != bAbr {
+		return aAbr > bAbr
+	}
+
+	// 2. 比较文件大小（更大通常意味着更高质量）
+	aFilesize := getInt64Value(a, "filesize")
+	bFilesize := getInt64Value(b, "filesize")
+	if aFilesize != bFilesize {
+		return aFilesize > bFilesize
+	}
+
+	return true
+}
+
+// isVideoFormatMapBetter 比较两个视频格式的质量（基于原始formatMap）
+// 返回 true 表示 a 比 b 更好
+func (s *Service) isVideoFormatMapBetter(a, b map[string]interface{}) bool {
+	// 1. 优先比较比特率（vbr字段）
+	aVbr := getInt64Value(a, "vbr")
+	bVbr := getInt64Value(b, "vbr")
+	if aVbr != bVbr {
+		return aVbr > bVbr
+	}
+
+	// 2. 比较帧率（fps字段）
+	aFps := getFloat64Value(a, "fps")
+	bFps := getFloat64Value(b, "fps")
+	if aFps != bFps {
+		return aFps > bFps
+	}
+
+	// 3. 比较文件大小（更大通常意味着更高质量）
+	aFilesize := getInt64Value(a, "filesize")
+	bFilesize := getInt64Value(b, "filesize")
+	if aFilesize != bFilesize {
+		return aFilesize > bFilesize
+	}
+
+	return true
+}
+
+// getFloat64Value 从数据中提取float64值
+func getFloat64Value(data map[string]interface{}, key string) float64 {
+	switch value := data[key].(type) {
+	case float64:
+		return value
+	case float32:
+		return float64(value)
+	case int:
+		return float64(value)
+	case int64:
+		return float64(value)
+	case string:
+		if f, err := strconv.ParseFloat(value, 64); err == nil {
+			return f
+		}
+	}
+	return 0
 }

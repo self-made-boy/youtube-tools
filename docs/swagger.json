@@ -270,18 +270,13 @@
             "properties": {
                 "asr": {
                     "description": "采样率",
-                    "type": "string",
-                    "example": "44100"
+                    "type": "integer",
+                    "example": 44100
                 },
                 "ext": {
                     "description": "音频文件扩展名",
                     "type": "string",
                     "example": "m4a"
-                },
-                "filesize": {
-                    "description": "音频文件大小",
-                    "type": "integer",
-                    "example": 3145728
                 },
                 "format_id": {
                     "description": "音频格式ID",
@@ -314,11 +309,6 @@
                     "description": "文件扩展名",
                     "type": "string",
                     "example": "mp4"
-                },
-                "filesize": {
-                    "description": "文件大小",
-                    "type": "integer",
-                    "example": 52428800
                 },
                 "format_id": {
                     "description": "格式ID",

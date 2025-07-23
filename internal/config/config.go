@@ -22,6 +22,9 @@ type Config struct {
 	MaxDownloads int
 	MaxFileSize  int64 // 单位：字节
 
+	AudioFormats []string
+	VideoFormats []string
+
 	// 其他配置
 	Env string
 }

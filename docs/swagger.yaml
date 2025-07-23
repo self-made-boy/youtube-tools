@@ -51,16 +51,12 @@ definitions:
     properties:
       asr:
         description: 采样率
-        example: "44100"
-        type: string
+        example: 44100
+        type: integer
       ext:
         description: 音频文件扩展名
         example: m4a
         type: string
-      filesize:
-        description: 音频文件大小
-        example: 3145728
-        type: integer
       format_id:
         description: 音频格式ID
         example: "140"
@@ -84,10 +80,6 @@ definitions:
         description: 文件扩展名
         example: mp4
         type: string
-      filesize:
-        description: 文件大小
-        example: 52428800
-        type: integer
       format_id:
         description: 格式ID
         example: "137"
