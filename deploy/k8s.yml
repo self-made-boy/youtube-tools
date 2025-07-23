@@ -1,0 +1,109 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: youtube-tools
+  labels:
+    app: youtube-tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: youtube-tools
+  template:
+    metadata:
+      labels:
+        app: youtube-tools
+    spec:
+      containers:
+        - name: youtube-tools
+          image: youtube-tools:latest
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+          env:
+            - name: PORT
+              value: "8080"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: LOG_FORMAT
+              value: "json"
+            - name: DOWNLOAD_DIR
+              value: "/app/downloads"
+            - name: MAX_DOWNLOADS
+              value: "5"
+            - name: MAX_FILE_SIZE
+              value: "1073741824"
+            - name: ENV
+              value: "production"
+          volumeMounts:
+            - name: downloads-pvc
+              mountPath: /app/downloads
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: downloads-pvc
+          persistentVolumeClaim:
+            claimName: youtube-tools-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: youtube-tools-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /data/youtube-tools
+    type: DirectoryOrCreate
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: youtube-tools-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: youtube-tools-pv
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: youtube-tools-service
+  labels:
+    app: youtube-tools
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080
+      protocol: TCP
+      name: http
+  selector:
+    app: youtube-tools

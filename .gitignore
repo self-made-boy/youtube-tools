@@ -1,0 +1,63 @@
+# Go项目忽略文件
+
+# 编译输出
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# 依赖目录
+/vendor/
+
+# Go工作区文件
+go.work
+
+# 输出目录
+/bin/
+/dist/
+
+# 日志文件
+*.log
+
+# 视频文件和下载内容
+*.mp4
+*.webm
+*.mkv
+*.m4a
+*.mp3
+/downloads/
+
+# IDE和编辑器文件
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# 环境变量文件
+.env
+.env.local
+
+# Kubernetes本地配置
+kubeconfig
+
+# 临时文件
+tmp/
+temp/
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+
+.trae

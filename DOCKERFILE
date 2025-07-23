@@ -1,0 +1,69 @@
+FROM ubuntu:24.04 AS base-os
+
+# 第一步：安装开发常用工具
+FROM base-os AS dev-tools
+# 设置环境变量避免交互式提示
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    vim \
+    nano \
+    net-tools \
+    iputils-ping \
+    traceroute \
+    dnsutils \
+    netcat-openbsd \
+    bash-completion \
+    htop \
+    lsof \
+    unzip \
+    zip \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# 配置bash-completion使其生效
+RUN echo 'source /etc/bash_completion' >> /root/.bashrc \
+    && echo 'if [ -f /etc/bash_completion ]; then . /etc/bash_completion; fi' >> /root/.bashrc \
+    && echo 'export PS1="\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "' >> /root/.bashrc
+
+# 第二步：安装yt-dlp和ffmpeg
+FROM dev-tools AS youtube-tools
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
+# 继承环境变量设置
+RUN apt-get update && apt-get install -y \
+    python3 \
+    software-properties-common \
+    ffmpeg \
+    && add-apt-repository -y ppa:tomtomtom/yt-dlp \
+    && apt-get update \
+    && apt-get install -y yt-dlp \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# 编译环境：用于构建golang应用
+FROM golang:1.24 AS builder
+WORKDIR /build
+
+# 复制应用代码
+COPY . /build/
+
+# 构建golang应用
+RUN go mod download && \
+    CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o youtube-api .
+
+# 最终镜像：基于youtube-tools，只包含运行时所需的文件
+FROM youtube-tools AS final
+WORKDIR /app
+
+# 从编译环境中复制编译好的二进制文件
+COPY --from=builder /build/youtube-api /app/
+
+# 暴露API端口
+EXPOSE 8080
+
+# 设置入口点
+CMD ["/app/youtube-api"]
