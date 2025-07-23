@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -137,6 +138,47 @@ func New(cfg *config.Config, logger *zap.Logger) *Service {
 		downloads: make(map[string]*DownloadTask),
 		mutex:     sync.RWMutex{},
 	}
+}
+
+// CheckUrl 检查URL是否为有效的YouTube视频链接,返回纯净的链接和视频 Id
+func (s *Service) CheckUrl(urlStr string) (string, string, error) {
+	// 解析URL
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Check and normalize URL scheme
+	if parsedURL.Scheme == "" || parsedURL.Scheme == "http" {
+		parsedURL.Scheme = "https"
+	} else if parsedURL.Scheme != "https" {
+		return "", "", fmt.Errorf("invalid URL scheme: %s", parsedURL.Scheme)
+	}
+
+	// Check if hostname is www.youtube.com, youtube.com or m.youtube.com
+	// Convert hostname to www.youtube.com if valid
+	switch parsedURL.Host {
+	case "youtube.com", "m.youtube.com":
+		parsedURL.Host = "www.youtube.com"
+	case "www.youtube.com":
+		// Already correct format
+	default:
+		return "", "", fmt.Errorf("invalid URL host: %s", parsedURL.Host)
+	}
+
+	// 检查路径是否为 /watch
+	if parsedURL.Path != "/watch" {
+		return "", "", fmt.Errorf("invalid URL path: %s", parsedURL.Path)
+	}
+
+	// 检查是否包含 v 参数
+	queryParams := parsedURL.Query()
+	videoID := queryParams.Get("v")
+	if videoID == "" {
+		return "", "", fmt.Errorf("missing video ID in URL")
+	}
+
+	return parsedURL.String(), videoID, nil
 }
 
 // GetVideoInfo 获取视频信息
