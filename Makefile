@@ -14,11 +14,12 @@ help:
 
 # 构建应用
 build:
-	go build -o youtube-tools cmd/api/main.go
+	mkdir -p build
+	go build -o build/youtube-tools cmd/api/main.go
 
 # 运行应用
 run: build
-	./youtube-tools
+	./build/youtube-tools
 
 # 运行测试
 test:
@@ -26,7 +27,7 @@ test:
 
 # 清理构建产物
 clean:
-	rm -f youtube-tools
+	rm -rf build/
 	rm -f docs/docs.go docs/swagger.json docs/swagger.yaml
 
 # 生成 Swagger 文档
@@ -36,6 +37,7 @@ docs:
 		echo "Installing swag..."; \
 		go install github.com/swaggo/swag/cmd/swag@latest; \
 	fi
+	mkdir -p docs
 	$(shell go env GOPATH)/bin/swag init -g cmd/api/main.go -o docs
 	@echo "Swagger documentation generated successfully!"
 
@@ -43,7 +45,7 @@ docs:
 swagger: docs build
 	@echo "Starting server with Swagger documentation..."
 	@echo "Swagger UI will be available at: http://localhost:8080/swagger/index.html"
-	./youtube-tools
+	./build/youtube-tools
 
 # 安装依赖
 deps:

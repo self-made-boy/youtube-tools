@@ -18,6 +18,12 @@ go.work
 # 输出目录
 /bin/
 /dist/
+/build/
+
+# Swagger自动生成的文档文件
+/docs/docs.go
+/docs/swagger.json
+/docs/swagger.yaml
 
 # 日志文件
 *.log

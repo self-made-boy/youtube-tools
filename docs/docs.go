@@ -43,7 +43,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_api_handlers.StartDownloadRequest"
+                            "$ref": "#/definitions/handlers.StartDownloadRequest"
                         }
                     }
                 ],
@@ -51,19 +51,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     }
                 }
@@ -92,19 +92,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     }
                 }
@@ -124,7 +124,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     }
                 }
@@ -155,13 +155,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response"
+                                    "$ref": "#/definitions/response.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_ytdlp.VideoInfo"
+                                            "$ref": "#/definitions/ytdlp.VideoInfo"
                                         }
                                     }
                                 }
@@ -171,13 +171,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     }
                 }
@@ -206,19 +206,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_api_response.Response"
+                            "$ref": "#/definitions/response.Response"
                         }
                     }
                 }
@@ -226,7 +226,27 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_self-made-boy_youtube-tools_internal_api_response.Response": {
+        "handlers.StartDownloadRequest": {
+            "type": "object",
+            "required": [
+                "url"
+            ],
+            "properties": {
+                "filename": {
+                    "type": "string"
+                },
+                "format": {
+                    "type": "string"
+                },
+                "output_dir": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.Response": {
             "type": "object",
             "properties": {
                 "code": {
@@ -238,7 +258,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_self-made-boy_youtube-tools_internal_ytdlp.VideoFormat": {
+        "ytdlp.VideoFormat": {
             "type": "object",
             "properties": {
                 "ext": {
@@ -263,7 +283,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_self-made-boy_youtube-tools_internal_ytdlp.VideoFormatGroup": {
+        "ytdlp.VideoFormatGroup": {
             "type": "object",
             "properties": {
                 "ext": {
@@ -275,19 +295,19 @@ const docTemplate = `{
                     "description": "格式列表",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_ytdlp.VideoFormat"
+                        "$ref": "#/definitions/ytdlp.VideoFormat"
                     }
                 }
             }
         },
-        "github_com_self-made-boy_youtube-tools_internal_ytdlp.VideoInfo": {
+        "ytdlp.VideoInfo": {
             "type": "object",
             "properties": {
                 "audio": {
                     "description": "音频格式",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_ytdlp.VideoFormatGroup"
+                        "$ref": "#/definitions/ytdlp.VideoFormatGroup"
                     }
                 },
                 "categories": {
@@ -376,7 +396,7 @@ const docTemplate = `{
                     "description": "视频格式",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_self-made-boy_youtube-tools_internal_ytdlp.VideoFormatGroup"
+                        "$ref": "#/definitions/ytdlp.VideoFormatGroup"
                     }
                 },
                 "view_count": {
@@ -388,26 +408,6 @@ const docTemplate = `{
                     "description": "视频网页URL",
                     "type": "string",
                     "example": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-                }
-            }
-        },
-        "internal_api_handlers.StartDownloadRequest": {
-            "type": "object",
-            "required": [
-                "url"
-            ],
-            "properties": {
-                "filename": {
-                    "type": "string"
-                },
-                "format": {
-                    "type": "string"
-                },
-                "output_dir": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
                 }
             }
         }
