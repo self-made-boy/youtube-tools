@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"github.com/self-made-boy/youtube-tools/internal/api/response"
 	"github.com/self-made-boy/youtube-tools/internal/config"
 	"github.com/self-made-boy/youtube-tools/internal/ytdlp"
 )
@@ -31,37 +32,21 @@ func New(cfg *config.Config, logger *zap.Logger, ytdlpService *ytdlp.Service) *H
 	}
 }
 
-// Response 表示 API 响应
-type Response struct {
-	Status  string      `json:"status"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   *ErrorInfo  `json:"error,omitempty"`
-	Message string      `json:"message,omitempty"`
-}
-
-// ErrorInfo 表示错误信息
-type ErrorInfo struct {
-	Code    string      `json:"code"`
-	Message string      `json:"message"`
-	Details interface{} `json:"details,omitempty"`
-}
+// 使用 response 包中的 Response 结构体
 
 // HealthCheck 处理健康检查请求
 // @Summary 健康检查
 // @Description 获取 API 服务的健康状态
 // @Tags 系统
 // @Produce json
-// @Success 200 {object} Response
+// @Success 200 {object} response.Response
 // @Router /health [get]
 func (h *Handler) HealthCheck(c *gin.Context) {
 	uptime := time.Since(h.startTime).String()
 
-	c.JSON(http.StatusOK, Response{
-		Status: "success",
-		Data: map[string]string{
-			"version": h.version,
-			"uptime":  uptime,
-		},
+	response.Success(c, map[string]string{
+		"version": h.version,
+		"uptime":  uptime,
 	})
 }
 
@@ -78,54 +63,34 @@ type GetVideoInfoRequest struct {
 // @Produce json
 // @Param url query string true "视频 URL"
 // @Param format query string false "输出格式 (json, simple)"
-// @Success 200 {object} Response
-// @Failure 400 {object} Response
-// @Failure 500 {object} Response
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 500 {object} response.Response
 // @Router /info [get]
 func (h *Handler) GetVideoInfo(c *gin.Context) {
 	var req GetVideoInfoRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
-		c.JSON(http.StatusBadRequest, Response{
-			Status: "error",
-			Error: &ErrorInfo{
-				Code:    "INVALID_REQUEST",
-				Message: "Invalid request parameters",
-				Details: err.Error(),
-			},
-		})
+		response.BadRequest(c, response.INVALID_REQUEST, err)
 		return
 	}
 
 	// 获取视频信息
 	info, err := h.ytdlp.GetVideoInfo(req.URL)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, Response{
-			Status: "error",
-			Error: &ErrorInfo{
-				Code:    "VIDEO_INFO_ERROR",
-				Message: "Failed to get video information",
-				Details: err.Error(),
-			},
-		})
+		response.Fail(c, http.StatusInternalServerError, response.VIDEO_INFO_ERROR, err)
 		return
 	}
 
 	// 根据格式返回结果
 	if req.Format == "simple" {
-		c.JSON(http.StatusOK, Response{
-			Status: "success",
-			Data: map[string]interface{}{
-				"id":       info.ID,
-				"title":    info.Title,
-				"uploader": info.Uploader,
-				"duration": info.Duration,
-			},
+		response.Success(c, map[string]interface{}{
+			"id":       info.ID,
+			"title":    info.Title,
+			"uploader": info.Uploader,
+			"duration": info.Duration,
 		})
 	} else {
-		c.JSON(http.StatusOK, Response{
-			Status: "success",
-			Data:   info,
-		})
+		response.Success(c, info)
 	}
 }
 
@@ -144,45 +109,28 @@ type StartDownloadRequest struct {
 // @Accept json
 // @Produce json
 // @Param request body StartDownloadRequest true "下载请求"
-// @Success 200 {object} Response
-// @Failure 400 {object} Response
-// @Failure 500 {object} Response
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 500 {object} response.Response
 // @Router /download [post]
 func (h *Handler) StartDownload(c *gin.Context) {
 	var req StartDownloadRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, Response{
-			Status: "error",
-			Error: &ErrorInfo{
-				Code:    "INVALID_REQUEST",
-				Message: "Invalid request parameters",
-				Details: err.Error(),
-			},
-		})
+		response.BadRequest(c, response.INVALID_REQUEST, err)
 		return
 	}
 
 	// 开始下载
 	task, err := h.ytdlp.StartDownload(req.URL, req.Format, req.OutputDir, req.Filename)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, Response{
-			Status: "error",
-			Error: &ErrorInfo{
-				Code:    "DOWNLOAD_ERROR",
-				Message: "Failed to start download",
-				Details: err.Error(),
-			},
-		})
+		response.Fail(c, http.StatusInternalServerError, response.DOWNLOAD_ERROR, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, Response{
-		Status: "success",
-		Data: map[string]interface{}{
-			"task_id":  task.ID,
-			"filename": task.Filename,
-			"state":    task.State,
-		},
+	response.Success(c, map[string]interface{}{
+		"task_id":  task.ID,
+		"filename": task.Filename,
+		"state":    task.State,
 	})
 }
 
@@ -192,41 +140,25 @@ func (h *Handler) StartDownload(c *gin.Context) {
 // @Tags 下载
 // @Produce json
 // @Param task_id path string true "任务 ID"
-// @Success 200 {object} Response
-// @Failure 400 {object} Response
-// @Failure 404 {object} Response
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 404 {object} response.Response
 // @Router /status/{task_id} [get]
 func (h *Handler) GetDownloadStatus(c *gin.Context) {
 	taskID := c.Param("task_id")
 	if taskID == "" {
-		c.JSON(http.StatusBadRequest, Response{
-			Status: "error",
-			Error: &ErrorInfo{
-				Code:    "INVALID_TASK_ID",
-				Message: "Task ID is required",
-			},
-		})
+		response.FailWithMessage(c, http.StatusBadRequest, response.INVALID_TASK_ID, "Task ID is required")
 		return
 	}
 
 	// 获取下载状态
 	task, err := h.ytdlp.GetDownloadStatus(taskID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, Response{
-			Status: "error",
-			Error: &ErrorInfo{
-				Code:    "TASK_NOT_FOUND",
-				Message: "Download task not found",
-				Details: err.Error(),
-			},
-		})
+		response.NotFound(c, response.TASK_NOT_FOUND, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, Response{
-		Status: "success",
-		Data:   task,
-	})
+	response.Success(c, task)
 }
 
 // CancelDownload 处理取消下载请求
@@ -235,39 +167,23 @@ func (h *Handler) GetDownloadStatus(c *gin.Context) {
 // @Tags 下载
 // @Produce json
 // @Param task_id path string true "任务 ID"
-// @Success 200 {object} Response
-// @Failure 400 {object} Response
-// @Failure 404 {object} Response
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.Response
+// @Failure 404 {object} response.Response
 // @Router /download/{task_id} [delete]
 func (h *Handler) CancelDownload(c *gin.Context) {
 	taskID := c.Param("task_id")
 	if taskID == "" {
-		c.JSON(http.StatusBadRequest, Response{
-			Status: "error",
-			Error: &ErrorInfo{
-				Code:    "INVALID_TASK_ID",
-				Message: "Task ID is required",
-			},
-		})
+		response.FailWithMessage(c, http.StatusBadRequest, response.INVALID_TASK_ID, "Task ID is required")
 		return
 	}
 
 	// 取消下载
 	err := h.ytdlp.CancelDownload(taskID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, Response{
-			Status: "error",
-			Error: &ErrorInfo{
-				Code:    "TASK_NOT_FOUND",
-				Message: "Download task not found",
-				Details: err.Error(),
-			},
-		})
+		response.NotFound(c, response.TASK_NOT_FOUND, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, Response{
-		Status:  "success",
-		Message: "Download cancelled successfully",
-	})
+	response.SuccessWithMessage(c, "Download cancelled successfully", nil)
 }

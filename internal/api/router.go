@@ -9,9 +9,9 @@ import (
 	"github.com/self-made-boy/youtube-tools/internal/config"
 	"github.com/self-made-boy/youtube-tools/internal/ytdlp"
 
+	_ "github.com/self-made-boy/youtube-tools/docs" // 导入 Swagger 文档
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	_ "github.com/self-made-boy/youtube-tools/docs" // 导入 Swagger 文档
 )
 
 // SetupRouter 设置 API 路由

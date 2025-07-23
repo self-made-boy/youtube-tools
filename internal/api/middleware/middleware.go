@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/self-made-boy/youtube-tools/internal/api/response"
 )
 
 // Logger 创建一个日志中间件
@@ -83,13 +85,7 @@ func Recovery(logger *zap.Logger) gin.HandlerFunc {
 				)
 
 				// 返回 500 错误
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"status": "error",
-					"error": gin.H{
-						"code":    "SERVER_ERROR",
-						"message": "Internal server error",
-					},
-				})
+				response.ServerError(c, fmt.Errorf("%v", err))
 
 				// 终止请求
 				c.Abort()
