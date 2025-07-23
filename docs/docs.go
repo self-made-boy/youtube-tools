@@ -147,12 +147,6 @@ const docTemplate = `{
                         "name": "url",
                         "in": "query",
                         "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "输出格式 (json, simple)",
-                        "name": "format",
-                        "in": "query"
                     }
                 ],
                 "responses": {

@@ -52,8 +52,7 @@ func (h *Handler) HealthCheck(c *gin.Context) {
 
 // GetVideoInfoRequest 表示获取视频信息的请求
 type GetVideoInfoRequest struct {
-	URL    string `form:"url" binding:"required"`
-	Format string `form:"format" binding:"omitempty,oneof=json simple"`
+	URL string `form:"url" binding:"required"`
 }
 
 // GetVideoInfo 处理获取视频信息请求
@@ -62,7 +61,6 @@ type GetVideoInfoRequest struct {
 // @Tags 视频
 // @Produce json
 // @Param url query string true "视频 URL"
-// @Param format query string false "输出格式 (json, simple)"
 // @Success 200 {object} response.Response
 // @Failure 400 {object} response.Response
 // @Failure 500 {object} response.Response
@@ -81,17 +79,8 @@ func (h *Handler) GetVideoInfo(c *gin.Context) {
 		return
 	}
 
-	// 根据格式返回结果
-	if req.Format == "simple" {
-		response.Success(c, map[string]interface{}{
-			"id":       info.ID,
-			"title":    info.Title,
-			"uploader": info.Uploader,
-			"duration": info.Duration,
-		})
-	} else {
-		response.Success(c, info)
-	}
+	// 直接返回完整的视频信息
+	response.Success(c, info)
 }
 
 // StartDownloadRequest 表示开始下载的请求

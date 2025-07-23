@@ -113,10 +113,6 @@ paths:
         name: url
         required: true
         type: string
-      - description: 输出格式 (json, simple)
-        in: query
-        name: format
-        type: string
       produces:
       - application/json
       responses:
