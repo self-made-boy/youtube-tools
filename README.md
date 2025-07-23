@@ -44,16 +44,23 @@ cd youtube-tools
 go mod download
 ```
 
-3. 构建项目
+3. 生成 API 文档并构建项目
 
 ```bash
-go build -o youtube-api ./cmd/api
+make docs
+make build
 ```
 
 4. 运行服务
 
 ```bash
-./youtube-api
+make run
+```
+
+或者一键生成文档并启动服务：
+
+```bash
+make swagger
 ```
 
 默认情况下，服务将在 `http://localhost:8080` 上运行。
@@ -77,6 +84,37 @@ docker run -p 8080:8080 -v /path/to/downloads:/app/downloads youtube-tools
 ```bash
 kubectl apply -f deploy/k8s.yml
 ```
+
+## 开发工具
+
+### Makefile 命令
+
+项目提供了 Makefile 来简化常用操作：
+
+```bash
+make help      # 显示所有可用命令
+make build     # 构建应用程序
+make run       # 运行应用程序
+make test      # 运行测试
+make clean     # 清理构建产物
+make docs      # 生成 Swagger 文档
+make swagger   # 生成文档并启动服务
+make deps      # 安装依赖
+make fmt       # 格式化代码
+make vet       # 代码检查
+make check     # 完整检查（格式化 + 检查 + 测试）
+make dev       # 开发模式（生成文档 + 运行）
+```
+
+### 文档生成
+
+项目使用 Swagger 自动生成 API 文档。当你修改了 API 接口或注释后，需要重新生成文档：
+
+```bash
+make docs
+```
+
+这将自动安装 `swag` 工具（如果未安装）并生成最新的 API 文档。
 
 ## API 使用
 
