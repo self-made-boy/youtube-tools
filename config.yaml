@@ -7,6 +7,12 @@ log:
   level: info    # debug, info, warn, error
   format: json   # json, console
 
+# s3挂载位置
+s3_mount: /data/yt
+
+# s3前缀
+s3_prefix: https://resource.friendochat.com/ytb/
+
 # yt-dlp 配置
 ytdlp:
   path: /opt/homebrew/bin/yt-dlp
@@ -16,6 +22,7 @@ ytdlp:
   proxy: "http://127.0.0.1:10808"  # HTTP/HTTPS/SOCKS代理，例如：http://proxy.example.com:8080 或 socks5://127.0.0.1:1080
   max_downloads: 5
   max_file_size: 1073741824  # 1GB in bytes
+
   
   # 支持的音频格式
   audio_formats:

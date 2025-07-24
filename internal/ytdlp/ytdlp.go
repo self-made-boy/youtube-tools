@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -642,23 +643,35 @@ func (s *Service) runDownload(task *DownloadTask) {
 		}
 	} else if task.State != "failed" {
 		commandDuration := time.Since(commandStartTime)
+		// 将文件 outputTemplate mv 到 s3Location
+		if err := os.Rename(outputTemplate, filepath.Join(s.config.S3Mount, s3Location)); err != nil {
+			s.logger.Error("Failed to move file to S3 location",
+				zap.String("task_id", task.ID),
+				zap.Error(err),
+				zap.String("source", outputTemplate),
+				zap.String("destination", s3Location))
+			task.State = "failed"
+			task.Error = fmt.Sprintf("Failed to move file to S3 location: %v", err)
+			return
+		}
 		// 下载成功
+		downloadUrl := s.getDownloadUrl(s3Location)
 		s.logger.Info("Download completed successfully",
 			zap.String("task_id", task.ID),
 			zap.Duration("command_duration", commandDuration),
-			zap.String("download_url", getDownloadUrl(s3Location)))
+			zap.String("download_url", downloadUrl))
 		task.State = "completed"
 		task.Progress = 100
 		task.Speed = "0 B/s"
 		task.ETA = "00:00"
-		task.DownloadUrl = getDownloadUrl(s3Location)
+		task.DownloadUrl = downloadUrl
 	}
 
 	task.EndTime = time.Now()
 }
 
-func getDownloadUrl(s3Location string) string {
-	return "https://resource.friendochat.com/ytb/" + s3Location
+func (s *Service) getDownloadUrl(s3Location string) string {
+	return s.config.S3Prefix + s3Location
 }
 
 // processOutput 处理命令输出

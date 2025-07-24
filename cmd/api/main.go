@@ -61,6 +61,8 @@ func main() {
 		zap.Int64("max_file_size", cfg.Ytdlp.MaxFileSize),
 		zap.Strings("audio_formats", cfg.Ytdlp.AudioFormats),
 		zap.Strings("video_formats", cfg.Ytdlp.VideoFormats),
+		zap.String("s3_mount", cfg.S3Mount),
+		zap.String("s3_prefix", cfg.S3Prefix),
 	)
 
 	// 初始化路由

@@ -19,6 +19,12 @@ type Config struct {
 	// yt-dlp 配置
 	Ytdlp YtdlpConfig `yaml:"ytdlp"`
 
+	// s3挂载位置
+	S3Mount string `yaml:"s3_mount"`
+
+	// s3前缀
+	S3Prefix string `yaml:"s3_prefix"`
+
 	// 其他配置
 	Env string `yaml:"env"`
 }
