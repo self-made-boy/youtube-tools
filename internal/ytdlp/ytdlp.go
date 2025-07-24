@@ -423,6 +423,10 @@ func (s *Service) ParseVideoFormatID(formatID string) (ext string, resolution st
 
 // IsVideoFormatID 检查格式 ID 是否为视频格式
 func (s *Service) IsVideoFormatID(formatID string) bool {
+	formatID, err := utils.FromHex(formatID)
+	if err != nil {
+		return false
+	}
 	return strings.HasPrefix(formatID, "v__")
 }
 
