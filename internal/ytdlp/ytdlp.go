@@ -181,10 +181,26 @@ func (s *Service) CheckUrl(urlStr string) (string, string, error) {
 
 	return parsedURL.String(), videoID, nil
 }
+func (s *Service) getVideoJsonPath(videoID string) string {
+	return filepath.Join(s.config.S3Mount, fmt.Sprintf("%s/%s.json", videoID, videoID))
+}
 
-// GetVideoInfo 获取视频信息
-func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
-	s.logger.Info("Getting video info", zap.String("url", url))
+// executeYtdlpCommand 执行yt-dlp命令获取视频信息
+func (s *Service) executeYtdlpCommand(url string) (string, error) {
+
+	_, videoID, err := s.CheckUrl(url)
+	if err != nil {
+		return "", err
+	}
+	videoJsonPath := s.getVideoJsonPath(videoID)
+	// 判断文件是否存在，如果存在则读取内容直接返回
+	if _, statErr := os.Stat(videoJsonPath); statErr == nil {
+		// 文件存在，读取内容
+		content, readErr := os.ReadFile(videoJsonPath)
+		if readErr == nil {
+			return string(content), nil
+		}
+	}
 
 	// 构建命令参数
 	cmdArgs := []string{
@@ -232,7 +248,7 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 				zap.Duration("duration", duration),
 				zap.String("command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
 		}
-		return nil, fmt.Errorf("failed to get video info: %w", err)
+		return "", fmt.Errorf("failed to get video info: %w", err)
 	}
 
 	// 记录命令执行成功的信息
@@ -243,6 +259,26 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 
 	// 记录输出内容（仅在debug级别，因为可能很长）
 	s.logger.Debug("yt-dlp command output", zap.String("output", string(output)))
+
+	// 将结果写入到 videoJsonPath 中
+	writeErr := os.WriteFile(videoJsonPath, output, 0644)
+	if writeErr != nil {
+		s.logger.Error("Failed to write video info to file", zap.Error(writeErr))
+	}
+	return string(output), nil
+}
+
+// GetVideoInfo 获取视频信息
+func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
+	s.logger.Info("Getting video info", zap.String("url", url))
+
+	// 执行yt-dlp命令获取输出
+	outputStr, err := s.executeYtdlpCommand(url)
+	if err != nil {
+		return nil, err
+	}
+
+	output := []byte(outputStr)
 	// 解析 JSON 输出
 	var rawInfo map[string]interface{}
 	if err := json.Unmarshal(output, &rawInfo); err != nil {
