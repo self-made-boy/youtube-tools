@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -33,21 +32,20 @@ type Service struct {
 
 // DownloadTask 表示一个下载任务
 type DownloadTask struct {
-	ID        string             `json:"id"`
-	URL       string             `json:"url"`
-	Format    string             `json:"format"`
-	State     string             `json:"state"` // pending, downloading, completed, failed
-	Progress  float64            `json:"progress"`
-	Speed     string             `json:"speed"`
-	ETA       string             `json:"eta"`
-	Error     string             `json:"error,omitempty"`
-	StartTime time.Time          `json:"start_time"`
-	EndTime   time.Time          `json:"end_time,omitempty"`
-	FilePath  string             `json:"file_path,omitempty"`
-	FileSize  int64              `json:"file_size,omitempty"`
-	Cmd       *exec.Cmd          `json:"-"`
-	Ctx       context.Context    `json:"-"`
-	Cancel    context.CancelFunc `json:"-"`
+	ID          string             `json:"id"`
+	URL         string             `json:"url"`
+	Format      string             `json:"format"`
+	State       string             `json:"state"` // pending, downloading, completed, failed
+	Progress    float64            `json:"progress"`
+	Speed       string             `json:"speed"`
+	ETA         string             `json:"eta"`
+	DownloadUrl string             `json:"download_url,omitempty"`
+	Error       string             `json:"error,omitempty"`
+	StartTime   time.Time          `json:"start_time"`
+	EndTime     time.Time          `json:"end_time,omitempty"`
+	Cmd         *exec.Cmd          `json:"-"`
+	Ctx         context.Context    `json:"-"`
+	Cancel      context.CancelFunc `json:"-"`
 }
 
 // VideoInfo 表示视频信息
@@ -339,6 +337,11 @@ func (s *Service) ParseVideoFormatID(formatID string) (ext string, resolution st
 	return ext, resolution, vaFormatID, nil
 }
 
+// IsVideoFormatID 检查格式 ID 是否为视频格式
+func (s *Service) IsVideoFormatID(formatID string) bool {
+	return strings.HasPrefix(formatID, "v__")
+}
+
 // StartDownload 开始下载视频
 func (s *Service) StartDownload(url, formatID string) (*DownloadTask, error) {
 	s.logger.Info("Starting download", zap.String("url", url), zap.String("format", formatID))
@@ -451,7 +454,7 @@ func (s *Service) runDownload(task *DownloadTask) {
 
 	// 构建输出文件名
 	outputDir := s.config.DownloadDir
-	outputTemplate := filepath.Join(outputDir, "%(title)s.%(ext)s")
+	outputTemplate := outputDir
 
 	// 构建命令
 	cmdArgs := []string{
@@ -466,9 +469,24 @@ func (s *Service) runDownload(task *DownloadTask) {
 		cmdArgs = append(cmdArgs, "--cookies", s.config.CookiesPath)
 	}
 
+	_, videoID, _ := s.CheckUrl(task.URL)
+
+	s3Location := ""
 	// 添加格式
-	if task.Format != "" {
-		cmdArgs = append(cmdArgs, "-f", task.Format)
+	if s.IsVideoFormatID(task.Format) {
+		ext, resolution, vaFormatID, _ := s.ParseVideoFormatID(task.Format)
+		cmdArgs = append(cmdArgs, "-f", vaFormatID)
+		cmdArgs = append(cmdArgs, "--merge-output-format", ext)
+
+		s3Location = fmt.Sprintf("%s/video/%s/%s.%s", videoID, resolution, videoID, ext)
+		outputTemplate = filepath.Join(outputDir, s3Location)
+	} else {
+		ext, asr, aFormatID, _ := s.ParseAudioFormatID(task.Format)
+		cmdArgs = append(cmdArgs, "-f", aFormatID)
+		cmdArgs = append(cmdArgs, "-x")
+		cmdArgs = append(cmdArgs, "--audio-format", ext)
+		s3Location = fmt.Sprintf("%s/audio/%d/%s.%s", videoID, asr, videoID, ext)
+		outputTemplate = filepath.Join(outputDir, s3Location)
 	}
 
 	// 添加输出模板
@@ -528,9 +546,14 @@ func (s *Service) runDownload(task *DownloadTask) {
 		task.Progress = 100
 		task.Speed = "0 B/s"
 		task.ETA = "00:00"
+		task.DownloadUrl = getDownloadUrl(s3Location)
 	}
 
 	task.EndTime = time.Now()
+}
+
+func getDownloadUrl(s3Location string) string {
+	return "https://resource.friendochat.com/ytb/" + s3Location
 }
 
 // processOutput 处理命令输出
@@ -550,14 +573,6 @@ func (s *Service) processOutput(task *DownloadTask, stdout, stderr io.ReadCloser
 		for scanner.Scan() {
 			line := scanner.Text()
 			s.logger.Debug("yt-dlp stderr", zap.String("line", line))
-
-			// 检查是否包含文件名信息
-			if strings.Contains(line, "Destination:") {
-				parts := strings.SplitN(line, "Destination: ", 2)
-				if len(parts) == 2 {
-					task.FilePath = strings.TrimSpace(parts[1])
-				}
-			}
 		}
 	}()
 }
@@ -590,30 +605,6 @@ func (s *Service) parseProgressLine(task *DownloadTask, line string) {
 		matches = etaRegex.FindStringSubmatch(line)
 		if len(matches) > 1 {
 			task.ETA = matches[1]
-		}
-	}
-
-	// 检查是否包含文件大小信息
-	if strings.Contains(line, "Destination:") && strings.Contains(line, "has already been downloaded") {
-		parts := strings.SplitN(line, "Destination: ", 2)
-		if len(parts) == 2 {
-			filePath := strings.Split(parts[1], " has already")[0]
-			task.FilePath = strings.TrimSpace(filePath)
-
-			// 获取文件大小
-			if info, err := os.Stat(task.FilePath); err == nil {
-				task.FileSize = info.Size()
-			}
-		}
-	}
-
-	// 检查是否下载完成
-	if strings.Contains(line, "has already been downloaded") || strings.Contains(line, "Merging formats") {
-		// 获取文件大小
-		if task.FilePath != "" {
-			if info, err := os.Stat(task.FilePath); err == nil {
-				task.FileSize = info.Size()
-			}
 		}
 	}
 }

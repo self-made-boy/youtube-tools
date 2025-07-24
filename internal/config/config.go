@@ -22,7 +22,9 @@ type Config struct {
 	MaxDownloads int
 	MaxFileSize  int64 // 单位：字节
 
+	//  aac, alac, flac, m4a, mp3, opus, vorbis, wav
 	AudioFormats []string
+	//avi, flv, mkv, mov, mp4, webm
 	VideoFormats []string
 
 	// 其他配置

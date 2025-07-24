@@ -184,9 +184,10 @@ func (h *Handler) GetDownloadStatus(c *gin.Context) {
 	}
 
 	response.Success(c, DownloadTaskStatusResp{
-		TaskID:   task.ID,
-		State:    task.State,
-		Progress: task.Progress,
-		ETA:      task.ETA,
+		TaskID:      task.ID,
+		State:       task.State,
+		Progress:    task.Progress,
+		ETA:         task.ETA,
+		DownloadUrl: task.DownloadUrl,
 	})
 }
