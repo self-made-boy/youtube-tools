@@ -543,6 +543,7 @@ func (s *Service) runDownload(task *DownloadTask) {
 		ext, resolution, vaFormatID, _ := s.ParseVideoFormatID(task.Format)
 		cmdArgs = append(cmdArgs, "-f", vaFormatID)
 		cmdArgs = append(cmdArgs, "--merge-output-format", ext)
+		cmdArgs = append(cmdArgs, "--postprocessor-args", getFfmpegArgs(ext))
 
 		s3Location = fmt.Sprintf("%s/video/%s/%s.%s", videoID, resolution, videoID, ext)
 		outputTemplate = filepath.Join(outputDir, s3Location)
@@ -551,6 +552,7 @@ func (s *Service) runDownload(task *DownloadTask) {
 		cmdArgs = append(cmdArgs, "-f", aFormatID)
 		cmdArgs = append(cmdArgs, "-x")
 		cmdArgs = append(cmdArgs, "--audio-format", ext)
+		cmdArgs = append(cmdArgs, "--postprocessor-args", getFfmpegArgs(ext))
 		s3Location = fmt.Sprintf("%s/audio/%d/%s.%s", videoID, asr, videoID, ext)
 		outputTemplate = filepath.Join(outputDir, s3Location)
 	}
@@ -670,6 +672,34 @@ func (s *Service) runDownload(task *DownloadTask) {
 	task.EndTime = time.Now()
 }
 
+func getFfmpegArgs(ext string) string {
+	switch ext {
+	case "mp4":
+		return "ffmpeg:-c:v libx264 -c:a aac"
+	case "webm":
+		return "ffmpeg:-c:v libvpx-vp9 -c:a libopus"
+	case "avi":
+		return "ffmpeg:-c:v libx264 -c:a libmp3lame"
+	case "mov":
+		return "ffmpeg:-c:v libx264 -c:a aac"
+	case "flv":
+		return "ffmpeg:-c:v libx264 -c:a aac"
+	case "mp3":
+		return "ffmpeg:-c:a libmp3lame"
+	case "m4a":
+		return "ffmpeg:-c:a aac"
+	case "aac":
+		return "ffmpeg:-c:a aac"
+	case "opus":
+		return "ffmpeg:-c:a libopus"
+	case "flac":
+		return "ffmpeg:-c:a flac"
+	case "wav":
+		return "ffmpeg:-c:a pcm_s16le"
+	default:
+		return "ffmpeg:-c copy"
+	}
+}
 func (s *Service) getDownloadUrl(s3Location string) string {
 	return s.config.S3Prefix + s3Location
 }
