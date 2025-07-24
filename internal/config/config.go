@@ -69,48 +69,7 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config file %s: %w", configPath, err)
 	}
 
-	// 设置默认值
-	setDefaults(&config)
-
 	return &config, nil
-}
-
-// setDefaults 设置默认值
-func setDefaults(config *Config) {
-	if config.Server.Port == 0 {
-		config.Server.Port = 8080
-	}
-	if config.Log.Level == "" {
-		config.Log.Level = "info"
-	}
-	if config.Log.Format == "" {
-		config.Log.Format = "json"
-	}
-	if config.Ytdlp.Path == "" {
-		config.Ytdlp.Path = "/usr/bin/yt-dlp"
-	}
-	if config.Ytdlp.FfmpegPath == "" {
-		config.Ytdlp.FfmpegPath = "/usr/bin/ffmpeg"
-	}
-	if config.Ytdlp.DownloadDir == "" {
-		config.Ytdlp.DownloadDir = "/tmp"
-	}
-
-	if config.Ytdlp.MaxDownloads == 0 {
-		config.Ytdlp.MaxDownloads = 5
-	}
-	if config.Ytdlp.MaxFileSize == 0 {
-		config.Ytdlp.MaxFileSize = 1073741824 // 1GB
-	}
-	if len(config.Ytdlp.AudioFormats) == 0 {
-		config.Ytdlp.AudioFormats = []string{"mp3", "m4a", "aac", "opus", "flac", "wav"}
-	}
-	if len(config.Ytdlp.VideoFormats) == 0 {
-		config.Ytdlp.VideoFormats = []string{"mp4", "webm", "mkv", "avi", "mov", "flv"}
-	}
-	if config.Env == "" {
-		config.Env = "development"
-	}
 }
 
 // getEnv 获取环境变量，如果不存在则返回默认值
