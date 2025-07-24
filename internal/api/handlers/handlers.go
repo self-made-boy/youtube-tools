@@ -133,14 +133,14 @@ func (h *Handler) StartDownload(c *gin.Context) {
 		return
 	}
 	// 开始下载
-	task, err := h.ytdlp.StartDownload(req.URL, req.FormatId)
+	taskID, err := h.ytdlp.StartDownload(req.URL, req.FormatId)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, response.DOWNLOAD_ERROR, err)
 		return
 	}
 
 	response.Success(c, StartDownloadResp{
-		TaskID: task.ID,
+		TaskID: taskID,
 	})
 }
 

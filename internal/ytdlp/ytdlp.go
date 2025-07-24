@@ -17,10 +17,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 
 	"github.com/self-made-boy/youtube-tools/internal/config"
+	"github.com/self-made-boy/youtube-tools/internal/utils"
 )
 
 // Service 提供 yt-dlp 相关操作
@@ -418,12 +418,53 @@ func (s *Service) IsVideoFormatID(formatID string) bool {
 	return strings.HasPrefix(formatID, "v__")
 }
 
+func (s *Service) getTaskId(url, formatID string) (string, error) {
+	_, videoID, err := s.CheckUrl(url)
+	if err != nil {
+		return "", err
+	}
+
+	task_id := ""
+	// 添加格式
+	if s.IsVideoFormatID(formatID) {
+		ext, resolution, _, _ := s.ParseVideoFormatID(formatID)
+		task_id = fmt.Sprintf("%s/video/%s/%s.%s", videoID, resolution, videoID, ext)
+	} else {
+		ext, asr, _, _ := s.ParseAudioFormatID(formatID)
+
+		task_id = fmt.Sprintf("%s/audio/%d/%s.%s", videoID, asr, videoID, ext)
+	}
+	return utils.ToHex(task_id), nil
+
+}
+
 // StartDownload 开始下载视频
-func (s *Service) StartDownload(url, formatID string) (*DownloadTask, error) {
+func (s *Service) StartDownload(url, formatID string) (string, error) {
 	s.logger.Info("Starting download", zap.String("url", url), zap.String("format", formatID))
 
 	// 生成任务 ID
-	taskID := uuid.New().String()
+	taskID, err := s.getTaskId(url, formatID)
+	if err != nil {
+		return "", err
+	}
+
+	// 使用读锁检查任务是否已存在
+	s.mutex.RLock()
+	if _, ok := s.downloads[taskID]; ok {
+		s.mutex.RUnlock()
+		return taskID, nil
+	}
+	s.mutex.RUnlock()
+
+	// 使用写锁进行双重检查并创建任务
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	// 双重检查：在获取写锁后再次检查任务是否存在
+	// 防止在读锁释放到写锁获取之间有其他goroutine创建了相同的任务
+	if _, ok := s.downloads[taskID]; ok {
+		return taskID, nil
+	}
 
 	// 创建上下文，用于取消下载
 	ctx, cancel := context.WithCancel(context.Background())
@@ -442,15 +483,12 @@ func (s *Service) StartDownload(url, formatID string) (*DownloadTask, error) {
 		Cancel:    cancel,
 	}
 
-	// 添加到下载列表
-	s.mutex.Lock()
 	s.downloads[taskID] = task
-	s.mutex.Unlock()
 
 	// 在后台启动下载
 	go s.runDownload(task)
 
-	return task, nil
+	return taskID, nil
 }
 
 // GetDownloadStatus 获取下载状态
