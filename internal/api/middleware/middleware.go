@@ -16,6 +16,10 @@ import (
 // shouldSkipLogging 检查是否应该跳过日志记录
 func shouldSkipLogging(path string) bool {
 	// 跳过健康检查请求
+	if path == "/" {
+		return true
+	}
+	// 跳过健康检查请求
 	if path == "/api/yt/health" {
 		return true
 	}
