@@ -67,3 +67,4 @@ temp/
 
 
 .trae
+cmd/api/__debug_bin*
