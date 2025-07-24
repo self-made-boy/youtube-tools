@@ -133,10 +133,10 @@ func New(cfg *config.Config, logger *zap.Logger) *Service {
 		downloads: make(map[string]*DownloadTask),
 		mutex:     sync.RWMutex{},
 	}
-	
+
 	// 启动清理 goroutine
 	go s.startCleanupRoutine()
-	
+
 	return s
 }
 
@@ -193,8 +193,8 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 
 	// 添加 cookies 文件
 	if s.config.Ytdlp.CookiesPath != "" {
-			cmdArgs = append(cmdArgs, "--cookies", s.config.Ytdlp.CookiesPath)
-		}
+		cmdArgs = append(cmdArgs, "--cookies", s.config.Ytdlp.CookiesPath)
+	}
 
 	// 添加代理配置
 	if s.config.Ytdlp.Proxy != "" {
@@ -454,7 +454,7 @@ func (s *Service) CancelDownload(taskID string) error {
 func (s *Service) GetActiveTasksCount() (total, pending, downloading, completed, failed int) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	
+
 	total = len(s.downloads)
 	for _, task := range s.downloads {
 		switch task.State {
@@ -526,8 +526,8 @@ func (s *Service) runDownload(task *DownloadTask) {
 
 	// 添加 cookies 文件
 	if s.config.Ytdlp.CookiesPath != "" {
-			cmdArgs = append(cmdArgs, "--cookies", s.config.Ytdlp.CookiesPath)
-		}
+		cmdArgs = append(cmdArgs, "--cookies", s.config.Ytdlp.CookiesPath)
+	}
 
 	// 添加代理配置
 	if s.config.Ytdlp.Proxy != "" {
@@ -566,13 +566,13 @@ func (s *Service) runDownload(task *DownloadTask) {
 
 	// 记录要执行的下载命令详情
 	s.logger.Info("Executing yt-dlp command for download",
-			zap.String("task_id", task.ID),
-			zap.String("full_command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
+		zap.String("task_id", task.ID),
+		zap.String("full_command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
 
 	// 获取标准输出和错误
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
-		s.logger.Error("Failed to get stdout pipe", 
+		s.logger.Error("Failed to get stdout pipe",
 			zap.String("task_id", task.ID),
 			zap.Error(err),
 			zap.String("command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
@@ -583,7 +583,7 @@ func (s *Service) runDownload(task *DownloadTask) {
 
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
-		s.logger.Error("Failed to get stderr pipe", 
+		s.logger.Error("Failed to get stderr pipe",
 			zap.String("task_id", task.ID),
 			zap.Error(err),
 			zap.String("command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
@@ -595,7 +595,7 @@ func (s *Service) runDownload(task *DownloadTask) {
 	// 启动命令
 	commandStartTime := time.Now()
 	if err := cmd.Start(); err != nil {
-		s.logger.Error("Failed to start download command", 
+		s.logger.Error("Failed to start download command",
 			zap.String("task_id", task.ID),
 			zap.Error(err),
 			zap.String("command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
@@ -604,7 +604,7 @@ func (s *Service) runDownload(task *DownloadTask) {
 		return
 	}
 
-	s.logger.Info("yt-dlp download command started successfully", 
+	s.logger.Info("yt-dlp download command started successfully",
 		zap.String("task_id", task.ID),
 		zap.Int("process_id", cmd.Process.Pid))
 
@@ -616,7 +616,7 @@ func (s *Service) runDownload(task *DownloadTask) {
 		commandDuration := time.Since(commandStartTime)
 		// 检查是否是因为取消而失败
 		if task.Ctx.Err() == context.Canceled {
-			s.logger.Info("Download cancelled", 
+			s.logger.Info("Download cancelled",
 				zap.String("task_id", task.ID),
 				zap.Duration("command_duration", commandDuration))
 			task.State = "failed"
@@ -643,7 +643,7 @@ func (s *Service) runDownload(task *DownloadTask) {
 	} else if task.State != "failed" {
 		commandDuration := time.Since(commandStartTime)
 		// 下载成功
-		s.logger.Info("Download completed successfully", 
+		s.logger.Info("Download completed successfully",
 			zap.String("task_id", task.ID),
 			zap.Duration("command_duration", commandDuration),
 			zap.String("download_url", getDownloadUrl(s3Location)))
@@ -668,6 +668,9 @@ func (s *Service) processOutput(task *DownloadTask, stdout, stderr io.ReadCloser
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
+			s.logger.Info("yt-dlp download task stdout",
+				zap.String("task_id", task.ID),
+				zap.String("line", line))
 			s.parseProgressLine(task, line)
 		}
 	}()
@@ -677,7 +680,9 @@ func (s *Service) processOutput(task *DownloadTask, stdout, stderr io.ReadCloser
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
 			line := scanner.Text()
-			s.logger.Debug("yt-dlp stderr", zap.String("line", line))
+			s.logger.Info("yt-dlp download task stderr",
+				zap.String("task_id", task.ID),
+				zap.String("line", line))
 		}
 	}()
 }
@@ -948,7 +953,7 @@ func getFloat64Value(data map[string]interface{}, key string) float64 {
 func (s *Service) startCleanupRoutine() {
 	ticker := time.NewTicker(5 * time.Minute) // 每5分钟检查一次
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -961,28 +966,28 @@ func (s *Service) startCleanupRoutine() {
 func (s *Service) cleanupCompletedTasks() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	
+
 	now := time.Now()
 	var tasksToDelete []string
-	
+
 	for taskID, task := range s.downloads {
 		// 检查任务是否已完成（completed 或 failed）且超过10分钟
-		if (task.State == "completed" || task.State == "failed") && 
-			!task.EndTime.IsZero() && 
+		if (task.State == "completed" || task.State == "failed") &&
+			!task.EndTime.IsZero() &&
 			now.Sub(task.EndTime) > 10*time.Minute {
 			tasksToDelete = append(tasksToDelete, taskID)
 		}
 	}
-	
+
 	// 删除过期的任务
 	for _, taskID := range tasksToDelete {
-		s.logger.Info("Cleaning up completed download task", 
+		s.logger.Info("Cleaning up completed download task",
 			zap.String("task_id", taskID),
 			zap.String("state", s.downloads[taskID].State),
 			zap.Duration("age", now.Sub(s.downloads[taskID].EndTime)))
 		delete(s.downloads, taskID)
 	}
-	
+
 	if len(tasksToDelete) > 0 {
 		s.logger.Info("Cleaned up download tasks", zap.Int("count", len(tasksToDelete)))
 	}
