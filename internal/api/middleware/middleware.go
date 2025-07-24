@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,19 @@ import (
 
 	"github.com/self-made-boy/youtube-tools/internal/api/response"
 )
+
+// shouldSkipLogging 检查是否应该跳过日志记录
+func shouldSkipLogging(path string) bool {
+	// 跳过健康检查请求
+	if path == "/api/yt/health" {
+		return true
+	}
+	// 跳过 swagger 相关请求
+	if strings.HasPrefix(path, "/api/yt/swagger/") {
+		return true
+	}
+	return false
+}
 
 // Logger 创建一个日志中间件
 func Logger(logger *zap.Logger) gin.HandlerFunc {
@@ -25,6 +39,11 @@ func Logger(logger *zap.Logger) gin.HandlerFunc {
 
 		// 处理请求
 		c.Next()
+
+		// 检查是否需要跳过日志记录
+		if shouldSkipLogging(c.Request.URL.Path) {
+			return
+		}
 
 		// 结束时间
 		end := time.Now()
