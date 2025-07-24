@@ -127,12 +127,17 @@ type AudioFormat struct {
 
 // New 创建一个新的 yt-dlp 服务
 func New(cfg *config.Config, logger *zap.Logger) *Service {
-	return &Service{
+	s := &Service{
 		config:    cfg,
 		logger:    logger,
 		downloads: make(map[string]*DownloadTask),
 		mutex:     sync.RWMutex{},
 	}
+	
+	// 启动清理 goroutine
+	go s.startCleanupRoutine()
+	
+	return s
 }
 
 // CheckUrl 检查URL是否为有效的YouTube视频链接,返回纯净的链接和视频 Id
@@ -414,6 +419,27 @@ func (s *Service) CancelDownload(taskID string) error {
 	}
 
 	return nil
+}
+
+// GetActiveTasksCount 获取当前活跃的下载任务数量
+func (s *Service) GetActiveTasksCount() (total, pending, downloading, completed, failed int) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	
+	total = len(s.downloads)
+	for _, task := range s.downloads {
+		switch task.State {
+		case "pending":
+			pending++
+		case "downloading":
+			downloading++
+		case "completed":
+			completed++
+		case "failed":
+			failed++
+		}
+	}
+	return
 }
 
 // runDownload 执行下载任务
@@ -847,4 +873,48 @@ func getFloat64Value(data map[string]interface{}, key string) float64 {
 		}
 	}
 	return 0
+}
+
+// startCleanupRoutine 启动清理例程，定期清理已完成的下载任务
+func (s *Service) startCleanupRoutine() {
+	ticker := time.NewTicker(5 * time.Minute) // 每5分钟检查一次
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ticker.C:
+			s.cleanupCompletedTasks()
+		}
+	}
+}
+
+// cleanupCompletedTasks 清理已完成超过10分钟的下载任务
+func (s *Service) cleanupCompletedTasks() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	
+	now := time.Now()
+	var tasksToDelete []string
+	
+	for taskID, task := range s.downloads {
+		// 检查任务是否已完成（completed 或 failed）且超过10分钟
+		if (task.State == "completed" || task.State == "failed") && 
+			!task.EndTime.IsZero() && 
+			now.Sub(task.EndTime) > 10*time.Minute {
+			tasksToDelete = append(tasksToDelete, taskID)
+		}
+	}
+	
+	// 删除过期的任务
+	for _, taskID := range tasksToDelete {
+		s.logger.Info("Cleaning up completed download task", 
+			zap.String("task_id", taskID),
+			zap.String("state", s.downloads[taskID].State),
+			zap.Duration("age", now.Sub(s.downloads[taskID].EndTime)))
+		delete(s.downloads, taskID)
+	}
+	
+	if len(tasksToDelete) > 0 {
+		s.logger.Info("Cleaned up download tasks", zap.Int("count", len(tasksToDelete)))
+	}
 }
