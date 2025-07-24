@@ -1,65 +1,115 @@
 package config
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
-	"strconv"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Config 保存应用程序配置
 type Config struct {
 	// 服务器配置
-	Port int
+	Server ServerConfig `yaml:"server"`
 
 	// 日志配置
-	LogLevel  string
-	LogFormat string
+	Log LogConfig `yaml:"log"`
 
 	// yt-dlp 配置
-	YtdlpPath    string
-	FfmpegPath   string
-	DownloadDir  string
-	CookiesPath  string // cookies.txt 文件路径
-	MaxDownloads int
-	MaxFileSize  int64 // 单位：字节
-
-	//  aac, alac, flac, m4a, mp3, opus, vorbis, wav
-	AudioFormats []string
-	//avi, flv, mkv, mov, mp4, webm
-	VideoFormats []string
+	Ytdlp YtdlpConfig `yaml:"ytdlp"`
 
 	// 其他配置
-	Env string
+	Env string `yaml:"env"`
 }
 
-// Load 从环境变量加载配置
+// ServerConfig 服务器配置
+type ServerConfig struct {
+	Port int `yaml:"port"`
+}
+
+// LogConfig 日志配置
+type LogConfig struct {
+	Level  string `yaml:"level"`
+	Format string `yaml:"format"`
+}
+
+// YtdlpConfig yt-dlp 配置
+type YtdlpConfig struct {
+	Path         string   `yaml:"path"`
+	FfmpegPath   string   `yaml:"ffmpeg_path"`
+	DownloadDir  string   `yaml:"download_dir"`
+	CookiesPath  string   `yaml:"cookies_path"` // cookies.txt 文件路径
+	MaxDownloads int      `yaml:"max_downloads"`
+	MaxFileSize  int64    `yaml:"max_file_size"` // 单位：字节
+	AudioFormats []string `yaml:"audio_formats"` // aac, alac, flac, m4a, mp3, opus, vorbis, wav
+	VideoFormats []string `yaml:"video_formats"` // avi, flv, mkv, mov, mp4, webm
+}
+
+// Load 从YAML配置文件加载配置
 func Load() (*Config, error) {
-	port, err := strconv.Atoi(getEnv("PORT", "8080"))
-	if err != nil {
-		port = 8080
+	// 获取配置文件路径，默认为当前目录下的config.yaml
+	configPath := getEnv("CONFIG_PATH", "config.yaml")
+
+	// 检查配置文件是否存在
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("config file not found: %s", configPath)
 	}
 
-	maxDownloads, err := strconv.Atoi(getEnv("MAX_DOWNLOADS", "5"))
+	// 读取配置文件
+	data, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		maxDownloads = 5
+		return nil, fmt.Errorf("failed to read config file %s: %w", configPath, err)
 	}
 
-	maxFileSize, err := strconv.ParseInt(getEnv("MAX_FILE_SIZE", "1073741824"), 10, 64) // 默认 1GB
-	if err != nil {
-		maxFileSize = 1073741824 // 1GB
+	// 解析YAML配置
+	var config Config
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse config file %s: %w", configPath, err)
 	}
 
-	return &Config{
-		Port:         port,
-		LogLevel:     getEnv("LOG_LEVEL", "info"),
-		LogFormat:    getEnv("LOG_FORMAT", "json"),
-		YtdlpPath:    getEnv("YTDLP_PATH", "/usr/bin/yt-dlp"),
-		FfmpegPath:   getEnv("FFMPEG_PATH", "/usr/bin/ffmpeg"),
-		DownloadDir:  getEnv("DOWNLOAD_DIR", "/app/downloads"),
-		CookiesPath:  getEnv("COOKIES_PATH", "/app/cookies.txt"),
-		MaxDownloads: maxDownloads,
-		MaxFileSize:  maxFileSize,
-		Env:          getEnv("ENV", "development"),
-	}, nil
+	// 设置默认值
+	setDefaults(&config)
+
+	return &config, nil
+}
+
+// setDefaults 设置默认值
+func setDefaults(config *Config) {
+	if config.Server.Port == 0 {
+		config.Server.Port = 8080
+	}
+	if config.Log.Level == "" {
+		config.Log.Level = "info"
+	}
+	if config.Log.Format == "" {
+		config.Log.Format = "json"
+	}
+	if config.Ytdlp.Path == "" {
+		config.Ytdlp.Path = "/usr/bin/yt-dlp"
+	}
+	if config.Ytdlp.FfmpegPath == "" {
+		config.Ytdlp.FfmpegPath = "/usr/bin/ffmpeg"
+	}
+	if config.Ytdlp.DownloadDir == "" {
+		config.Ytdlp.DownloadDir = "/tmp"
+	}
+
+	if config.Ytdlp.MaxDownloads == 0 {
+		config.Ytdlp.MaxDownloads = 5
+	}
+	if config.Ytdlp.MaxFileSize == 0 {
+		config.Ytdlp.MaxFileSize = 1073741824 // 1GB
+	}
+	if len(config.Ytdlp.AudioFormats) == 0 {
+		config.Ytdlp.AudioFormats = []string{"mp3", "m4a", "aac", "opus", "flac", "wav"}
+	}
+	if len(config.Ytdlp.VideoFormats) == 0 {
+		config.Ytdlp.VideoFormats = []string{"mp4", "webm", "mkv", "avi", "mov", "flv"}
+	}
+	if config.Env == "" {
+		config.Env = "development"
+	}
 }
 
 // getEnv 获取环境变量，如果不存在则返回默认值

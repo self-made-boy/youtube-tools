@@ -187,15 +187,15 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 	}
 
 	// 添加 cookies 文件
-	if s.config.CookiesPath != "" {
-		cmdArgs = append(cmdArgs, "--cookies", s.config.CookiesPath)
-	}
+	if s.config.Ytdlp.CookiesPath != "" {
+			cmdArgs = append(cmdArgs, "--cookies", s.config.Ytdlp.CookiesPath)
+		}
 
 	// 添加 URL
 	cmdArgs = append(cmdArgs, url)
 
 	// 构建命令
-	cmd := exec.Command(s.config.YtdlpPath, cmdArgs...)
+	cmd := exec.Command(s.config.Ytdlp.Path, cmdArgs...)
 
 	// 执行命令并获取输出
 	output, err := cmd.Output()
@@ -249,7 +249,7 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 	maxAFormatId := ""
 
 	// 构建音频格式组列表
-	for _, afe := range s.config.AudioFormats {
+	for _, afe := range s.config.Ytdlp.AudioFormats {
 		formats := []AudioFormat{}
 		for _, af := range optimalAudioFormats {
 			formats = append(formats, AudioFormat{
@@ -271,7 +271,7 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 	}
 
 	// 构建视频格式组列表
-	for _, vfe := range s.config.VideoFormats {
+	for _, vfe := range s.config.Ytdlp.VideoFormats {
 		formats := []VideoFormat{}
 		for _, vf := range optimalVideoFormats {
 			formats = append(formats, VideoFormat{
@@ -453,7 +453,7 @@ func (s *Service) runDownload(task *DownloadTask) {
 	task.State = "downloading"
 
 	// 构建输出文件名
-	outputDir := s.config.DownloadDir
+	outputDir := s.config.Ytdlp.DownloadDir
 	outputTemplate := outputDir
 
 	// 构建命令
@@ -465,9 +465,9 @@ func (s *Service) runDownload(task *DownloadTask) {
 	}
 
 	// 添加 cookies 文件
-	if s.config.CookiesPath != "" {
-		cmdArgs = append(cmdArgs, "--cookies", s.config.CookiesPath)
-	}
+	if s.config.Ytdlp.CookiesPath != "" {
+			cmdArgs = append(cmdArgs, "--cookies", s.config.Ytdlp.CookiesPath)
+		}
 
 	_, videoID, _ := s.CheckUrl(task.URL)
 
@@ -496,7 +496,7 @@ func (s *Service) runDownload(task *DownloadTask) {
 	cmdArgs = append(cmdArgs, task.URL)
 
 	// 创建命令
-	cmd := exec.CommandContext(task.Ctx, s.config.YtdlpPath, cmdArgs...)
+	cmd := exec.CommandContext(task.Ctx, s.config.Ytdlp.Path, cmdArgs...)
 	task.Cmd = cmd
 
 	// 获取标准输出和错误

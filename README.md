@@ -152,19 +152,62 @@ curl -X DELETE "http://localhost:8080/api/v1/download/task_id_here"
 
 ## 配置
 
-服务可以通过环境变量进行配置：
+服务使用 YAML 配置文件进行配置。配置文件必须存在，否则服务启动时会报错。
+
+### 配置文件
+
+配置文件路径可以通过环境变量 `CONFIG_PATH` 指定，默认为当前目录下的 `config.yaml`。
+
+参考 `config.yaml.example` 文件创建你的配置：
+
+```yaml
+# 服务器配置
+server:
+  port: 8080
+
+# 日志配置
+log:
+  level: info    # debug, info, warn, error
+  format: json   # json, console
+
+# yt-dlp 配置
+ytdlp:
+  path: /usr/bin/yt-dlp
+  ffmpeg_path: /usr/bin/ffmpeg
+  download_dir: /app/downloads
+  cookies_path: /app/cookies.txt
+  max_downloads: 5
+  max_file_size: 1073741824  # 1GB in bytes
+  
+  # 支持的音频格式
+  audio_formats:
+    - mp3
+    - m4a
+    - aac
+    - opus
+    - flac
+    - wav
+  
+  # 支持的视频格式
+  video_formats:
+    - mp4
+    - webm
+    - mkv
+    - avi
+    - mov
+    - flv
+
+# 环境配置
+env: development  # development, production
+```
+
+### 环境变量
+
+唯一支持的环境变量是 `CONFIG_PATH`，用于指定配置文件路径：
 
 | 环境变量 | 描述 | 默认值 |
 |----------|------|--------|
-| PORT | 服务端口 | 8080 |
-| LOG_LEVEL | 日志级别 (debug, info, warn, error) | info |
-| LOG_FORMAT | 日志格式 (json, console) | json |
-| YTDLP_PATH | yt-dlp 可执行文件路径 | /usr/bin/yt-dlp |
-| FFMPEG_PATH | ffmpeg 可执行文件路径 | /usr/bin/ffmpeg |
-| DOWNLOAD_DIR | 下载目录 | /app/downloads |
-| MAX_DOWNLOADS | 最大并发下载数 | 5 |
-| MAX_FILE_SIZE | 最大文件大小 (字节) | 1073741824 (1GB) |
-| ENV | 环境 (development, production) | development |
+| CONFIG_PATH | 配置文件路径 | config.yaml |
 
 ## 项目结构
 

@@ -37,7 +37,7 @@ func main() {
 	}
 
 	// 初始化日志
-	logger, err := logger.New(cfg.LogLevel, cfg.LogFormat)
+	logger, err := logger.New(cfg.Log.Level, cfg.Log.Format)
 	if err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
@@ -50,13 +50,13 @@ func main() {
 
 	// 创建 HTTP 服务器
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.Port),
+		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
 		Handler: router,
 	}
 
 	// 在单独的 goroutine 中启动服务器
 	go func() {
-		logger.Info(fmt.Sprintf("Server is running on port %d", cfg.Port))
+		logger.Info(fmt.Sprintf("Server is running on port %d", cfg.Server.Port))
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("Failed to start server", zap.Error(err))
 		}
