@@ -370,7 +370,7 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 
 // buildAudioFormatID 构建音频格式 ID，格式为 a__ext__asr__formatID
 func buildAudioFormatID(ext string, asr int64, formatID string) string {
-	return fmt.Sprintf("a__%s__%d__%s", ext, asr, formatID)
+	return utils.ToHex(fmt.Sprintf("a__%s__%d__%s", ext, asr, formatID))
 }
 
 // buildVideoFormatID 构建视频格式 ID，格式为 v__ext__resolution__vFormatID+aFormatID
@@ -378,11 +378,15 @@ func buildVideoFormatID(ext string, resolution string, vFormatID string, aFormat
 	if aFormatID != "" {
 		aFormatID = "+" + aFormatID
 	}
-	return fmt.Sprintf("v__%s__%s__%s%s", ext, resolution, vFormatID, aFormatID)
+	return utils.ToHex(fmt.Sprintf("v__%s__%s__%s%s", ext, resolution, vFormatID, aFormatID))
 }
 
 // ParseAudioFormatID 解析音频格式 ID，格式为 a__ext__asr__formatID
 func (s *Service) ParseAudioFormatID(formatID string) (ext string, asr int64, originalFormatID string, err error) {
+	formatID, err = utils.FromHex(formatID)
+	if err != nil {
+		return "", 0, "", fmt.Errorf("invalid audio format ID: %s", formatID)
+	}
 	parts := strings.Split(formatID, "__")
 	if len(parts) != 4 || parts[0] != "a" {
 		return "", 0, "", fmt.Errorf("invalid audio format ID: %s", formatID)
@@ -399,6 +403,10 @@ func (s *Service) ParseAudioFormatID(formatID string) (ext string, asr int64, or
 
 // ParseVideoFormatID 解析视频格式 ID，格式为 v__ext__resolution__vFormatID+aFormatID
 func (s *Service) ParseVideoFormatID(formatID string) (ext string, resolution string, vaFormatID string, err error) {
+	formatID, err = utils.FromHex(formatID)
+	if err != nil {
+		return "", "", "", fmt.Errorf("invalid video format ID: %s", formatID)
+	}
 	parts := strings.Split(formatID, "__")
 	if len(parts) != 4 || parts[0] != "v" {
 		return "", "", "", fmt.Errorf("invalid video format ID: %s", formatID)
