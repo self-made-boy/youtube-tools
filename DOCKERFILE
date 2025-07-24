@@ -53,17 +53,17 @@ COPY . /build/
 
 # 构建golang应用
 RUN go mod download && \
-    CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o youtube-api .
+    CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o youtube-tool .
 
 # 最终镜像：基于youtube-tools，只包含运行时所需的文件
 FROM youtube-tools AS final
 WORKDIR /app
 
 # 从编译环境中复制编译好的二进制文件
-COPY --from=builder /build/youtube-api /app/
+COPY --from=builder /build/youtube-tool /app/
 
 # 暴露API端口
 EXPOSE 8080
 
 # 设置入口点
-CMD ["/app/youtube-api"]
+CMD ["/app/youtube-tool"]
