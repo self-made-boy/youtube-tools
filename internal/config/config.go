@@ -40,6 +40,7 @@ type YtdlpConfig struct {
 	FfmpegPath   string   `yaml:"ffmpeg_path"`
 	DownloadDir  string   `yaml:"download_dir"`
 	CookiesPath  string   `yaml:"cookies_path"` // cookies.txt 文件路径
+	Proxy        string   `yaml:"proxy"`        // HTTP/HTTPS/SOCKS代理，例如：http://proxy.example.com:8080
 	MaxDownloads int      `yaml:"max_downloads"`
 	MaxFileSize  int64    `yaml:"max_file_size"` // 单位：字节
 	AudioFormats []string `yaml:"audio_formats"` // aac, alac, flac, m4a, mp3, opus, vorbis, wav

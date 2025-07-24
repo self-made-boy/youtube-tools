@@ -191,6 +191,11 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 			cmdArgs = append(cmdArgs, "--cookies", s.config.Ytdlp.CookiesPath)
 		}
 
+	// 添加代理配置
+	if s.config.Ytdlp.Proxy != "" {
+		cmdArgs = append(cmdArgs, "--proxy", s.config.Ytdlp.Proxy)
+	}
+
 	// 添加 URL
 	cmdArgs = append(cmdArgs, url)
 
@@ -468,6 +473,11 @@ func (s *Service) runDownload(task *DownloadTask) {
 	if s.config.Ytdlp.CookiesPath != "" {
 			cmdArgs = append(cmdArgs, "--cookies", s.config.Ytdlp.CookiesPath)
 		}
+
+	// 添加代理配置
+	if s.config.Ytdlp.Proxy != "" {
+		cmdArgs = append(cmdArgs, "--proxy", s.config.Ytdlp.Proxy)
+	}
 
 	_, videoID, _ := s.CheckUrl(task.URL)
 
