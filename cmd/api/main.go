@@ -44,6 +44,24 @@ func main() {
 	defer logger.Sync()
 
 	logger.Info("Starting YouTube Tools API service")
+	logger.Info(fmt.Sprintf("Server will run on port %d", cfg.Server.Port))
+
+	// 打印实际加载的配置信息
+	logger.Info("Loaded configuration details",
+		zap.String("env", cfg.Env),
+		zap.Int("server_port", cfg.Server.Port),
+		zap.String("log_level", cfg.Log.Level),
+		zap.String("log_format", cfg.Log.Format),
+		zap.String("ytdlp_path", cfg.Ytdlp.Path),
+		zap.String("ffmpeg_path", cfg.Ytdlp.FfmpegPath),
+		zap.String("download_dir", cfg.Ytdlp.DownloadDir),
+		zap.String("cookies_path", cfg.Ytdlp.CookiesPath),
+		zap.String("proxy", cfg.Ytdlp.Proxy),
+		zap.Int("max_downloads", cfg.Ytdlp.MaxDownloads),
+		zap.Int64("max_file_size", cfg.Ytdlp.MaxFileSize),
+		zap.Strings("audio_formats", cfg.Ytdlp.AudioFormats),
+		zap.Strings("video_formats", cfg.Ytdlp.VideoFormats),
+	)
 
 	// 初始化路由
 	router := api.SetupRouter(cfg, logger)
