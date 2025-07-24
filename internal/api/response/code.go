@@ -22,20 +22,20 @@ const (
 func GetMessage(code string) string {
 	switch code {
 	case SUCCESS:
-		return "操作成功"
+		return "Operation successful"
 	case INVALID_REQUEST:
-		return "无效的请求参数"
+		return "Invalid request parameters"
 	case INVALID_TASK_ID:
-		return "无效的任务ID"
+		return "Invalid task ID"
 	case TASK_NOT_FOUND:
-		return "任务未找到"
+		return "Task not found"
 	case VIDEO_INFO_ERROR:
-		return "获取视频信息失败"
+		return "Failed to get video information"
 	case DOWNLOAD_ERROR:
-		return "下载视频失败"
+		return "Failed to download video"
 	case SERVER_ERROR:
-		return "服务器内部错误"
+		return "Internal server error"
 	default:
-		return "未知错误"
+		return "Unknown error"
 	}
 }
