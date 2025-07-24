@@ -584,6 +584,25 @@ func (s *Service) GetActiveTasksCount() (total, pending, downloading, completed,
 func (s *Service) runDownload(task *DownloadTask) {
 	s.logger.Info("Running download task", zap.String("task_id", task.ID))
 
+	decodedTaskID, err := utils.FromHex(task.ID)
+	if err != nil {
+		task.State = "failed"
+		task.Error = err.Error()
+		task.EndTime = time.Now()
+		return
+	}
+	location := filepath.Join(s.config.S3Mount, decodedTaskID)
+	// 判断 location 文件是否存在，如果存在直接返回成功
+	if _, statErr := os.Stat(location); statErr == nil {
+		task.State = "completed"
+		task.EndTime = time.Now()
+		task.Progress = 100
+		task.Speed = "0 B/s"
+		task.ETA = "00:00"
+		task.DownloadUrl = s.getDownloadUrl(decodedTaskID)
+		return
+	}
+
 	// 更新任务状态
 	task.State = "downloading"
 
