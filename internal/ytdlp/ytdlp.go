@@ -646,12 +646,13 @@ func (s *Service) runDownload(task *DownloadTask) {
 	} else if task.State != "failed" {
 		commandDuration := time.Since(commandStartTime)
 		// 将文件 outputTemplate mv 到 s3Location
-		if err := os.Rename(outputTemplate, filepath.Join(s.config.S3Mount, s3Location)); err != nil {
+		destinationPath := filepath.Join(s.config.S3Mount, s3Location)
+		if err := s.moveFile(outputTemplate, destinationPath); err != nil {
 			s.logger.Error("Failed to move file to S3 location",
 				zap.String("task_id", task.ID),
 				zap.Error(err),
 				zap.String("source", outputTemplate),
-				zap.String("destination", s3Location))
+				zap.String("destination", destinationPath))
 			task.State = "failed"
 			task.Error = fmt.Sprintf("Failed to move file to S3 location: %v", err)
 			return
@@ -702,6 +703,55 @@ func getFfmpegArgs(ext string) string {
 }
 func (s *Service) getDownloadUrl(s3Location string) string {
 	return s.config.S3Prefix + s3Location
+}
+
+// moveFile 安全地移动文件，支持跨文件系统操作
+func (s *Service) moveFile(src, dst string) error {
+	// 确保目标目录存在
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	// 打开源文件
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("failed to open source file: %w", err)
+	}
+	defer srcFile.Close()
+
+	// 创建目标文件
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return fmt.Errorf("failed to create destination file: %w", err)
+	}
+	defer dstFile.Close()
+
+	// 复制文件内容
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return fmt.Errorf("failed to copy file content: %w", err)
+	}
+
+	// 确保数据写入磁盘
+	if err := dstFile.Sync(); err != nil {
+		return fmt.Errorf("failed to sync destination file: %w", err)
+	}
+
+	// 复制文件权限
+	if srcInfo, err := srcFile.Stat(); err == nil {
+		if err := os.Chmod(dst, srcInfo.Mode()); err != nil {
+			s.logger.Warn("Failed to copy file permissions",
+				zap.String("dst", dst),
+				zap.Error(err))
+		}
+	}
+
+	// 删除源文件
+	if err := os.Remove(src); err != nil {
+		return fmt.Errorf("failed to remove source file: %w", err)
+	}
+
+	return nil
 }
 
 // processOutput 处理命令输出
