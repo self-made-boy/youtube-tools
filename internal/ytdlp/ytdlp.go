@@ -207,12 +207,41 @@ func (s *Service) GetVideoInfo(url string) (*VideoInfo, error) {
 	// 构建命令
 	cmd := exec.Command(s.config.Ytdlp.Path, cmdArgs...)
 
+	// 记录要执行的命令详情
+	s.logger.Info("Executing yt-dlp command for video info",
+		zap.String("full_command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
+
 	// 执行命令并获取输出
+	start := time.Now()
 	output, err := cmd.Output()
+	duration := time.Since(start)
+
 	if err != nil {
-		s.logger.Error("Failed to get video info", zap.Error(err))
+		// 记录命令执行失败的详细信息
+		if exitError, ok := err.(*exec.ExitError); ok {
+			s.logger.Error("yt-dlp command failed",
+				zap.Error(err),
+				zap.String("stderr", string(exitError.Stderr)),
+				zap.Int("exit_code", exitError.ExitCode()),
+				zap.Duration("duration", duration),
+				zap.String("command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
+		} else {
+			s.logger.Error("Failed to execute yt-dlp command",
+				zap.Error(err),
+				zap.Duration("duration", duration),
+				zap.String("command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
+		}
 		return nil, fmt.Errorf("failed to get video info: %w", err)
 	}
+
+	// 记录命令执行成功的信息
+	s.logger.Info("yt-dlp command executed successfully",
+		zap.Duration("duration", duration),
+		zap.Int("output_size", len(output)),
+		zap.String("command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
+
+	// 记录输出内容（仅在debug级别，因为可能很长）
+	s.logger.Debug("yt-dlp command output", zap.String("output", string(output)))
 	// 解析 JSON 输出
 	var rawInfo map[string]interface{}
 	if err := json.Unmarshal(output, &rawInfo); err != nil {
@@ -535,10 +564,18 @@ func (s *Service) runDownload(task *DownloadTask) {
 	cmd := exec.CommandContext(task.Ctx, s.config.Ytdlp.Path, cmdArgs...)
 	task.Cmd = cmd
 
+	// 记录要执行的下载命令详情
+	s.logger.Info("Executing yt-dlp command for download",
+			zap.String("task_id", task.ID),
+			zap.String("full_command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
+
 	// 获取标准输出和错误
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
-		s.logger.Error("Failed to get stdout pipe", zap.Error(err))
+		s.logger.Error("Failed to get stdout pipe", 
+			zap.String("task_id", task.ID),
+			zap.Error(err),
+			zap.String("command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
 		task.State = "failed"
 		task.Error = fmt.Sprintf("Failed to start download: %v", err)
 		return
@@ -546,38 +583,70 @@ func (s *Service) runDownload(task *DownloadTask) {
 
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
-		s.logger.Error("Failed to get stderr pipe", zap.Error(err))
+		s.logger.Error("Failed to get stderr pipe", 
+			zap.String("task_id", task.ID),
+			zap.Error(err),
+			zap.String("command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
 		task.State = "failed"
 		task.Error = fmt.Sprintf("Failed to start download: %v", err)
 		return
 	}
 
 	// 启动命令
+	commandStartTime := time.Now()
 	if err := cmd.Start(); err != nil {
-		s.logger.Error("Failed to start download", zap.Error(err))
+		s.logger.Error("Failed to start download command", 
+			zap.String("task_id", task.ID),
+			zap.Error(err),
+			zap.String("command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
 		task.State = "failed"
 		task.Error = fmt.Sprintf("Failed to start download: %v", err)
 		return
 	}
+
+	s.logger.Info("yt-dlp download command started successfully", 
+		zap.String("task_id", task.ID),
+		zap.Int("process_id", cmd.Process.Pid))
 
 	// 处理输出
 	go s.processOutput(task, stdoutPipe, stderrPipe)
 
 	// 等待命令完成
 	if err := cmd.Wait(); err != nil {
+		commandDuration := time.Since(commandStartTime)
 		// 检查是否是因为取消而失败
 		if task.Ctx.Err() == context.Canceled {
-			s.logger.Info("Download cancelled", zap.String("task_id", task.ID))
+			s.logger.Info("Download cancelled", 
+				zap.String("task_id", task.ID),
+				zap.Duration("command_duration", commandDuration))
 			task.State = "failed"
 			task.Error = "Download cancelled by user"
 		} else {
-			s.logger.Error("Download failed", zap.Error(err))
+			// 记录命令执行失败的详细信息
+			if exitError, ok := err.(*exec.ExitError); ok {
+				s.logger.Error("yt-dlp download command failed",
+					zap.String("task_id", task.ID),
+					zap.Error(err),
+					zap.Int("exit_code", exitError.ExitCode()),
+					zap.Duration("command_duration", commandDuration),
+					zap.String("command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
+			} else {
+				s.logger.Error("Download command execution failed",
+					zap.String("task_id", task.ID),
+					zap.Error(err),
+					zap.Duration("command_duration", commandDuration),
+					zap.String("command", fmt.Sprintf("%s %s", s.config.Ytdlp.Path, strings.Join(cmdArgs, " "))))
+			}
 			task.State = "failed"
 			task.Error = fmt.Sprintf("Download failed: %v", err)
 		}
 	} else if task.State != "failed" {
+		commandDuration := time.Since(commandStartTime)
 		// 下载成功
-		s.logger.Info("Download completed", zap.String("task_id", task.ID))
+		s.logger.Info("Download completed successfully", 
+			zap.String("task_id", task.ID),
+			zap.Duration("command_duration", commandDuration),
+			zap.String("download_url", getDownloadUrl(s3Location)))
 		task.State = "completed"
 		task.Progress = 100
 		task.Speed = "0 B/s"
