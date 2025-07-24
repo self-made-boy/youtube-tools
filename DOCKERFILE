@@ -53,7 +53,7 @@ COPY . /build/
 
 # 构建golang应用
 RUN go mod download && \
-    CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o youtube-tools .
+    CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o youtube-tools cmd/api/main.go
 
 # 最终镜像：基于youtube-tools，只包含运行时所需的文件
 FROM youtube-tools AS final
