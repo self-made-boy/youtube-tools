@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/self-made-boy/youtube-tools/internal/config"
 	"github.com/self-made-boy/youtube-tools/internal/utils"
@@ -29,6 +30,8 @@ type Service struct {
 	logger    *zap.Logger
 	downloads map[string]*DownloadTask
 	mutex     sync.RWMutex
+	// group 用于确保同一videoID只执行一次
+	group     singleflight.Group
 }
 
 // DownloadTask 表示一个下载任务
@@ -187,13 +190,28 @@ func (s *Service) getVideoJsonPath(videoID string) string {
 
 // executeYtdlpCommand 执行yt-dlp命令获取视频信息
 func (s *Service) executeYtdlpCommand(url string) (string, error) {
-
 	_, videoID, err := s.CheckUrl(url)
 	if err != nil {
 		return "", err
 	}
+	
+	// 使用singleflight确保同一videoID只执行一次
+	result, err, _ := s.group.Do(videoID, func() (interface{}, error) {
+		return s.doExecuteYtdlpCommand(url, videoID)
+	})
+	
+	if err != nil {
+		return "", err
+	}
+	
+	return result.(string), nil
+}
+
+// doExecuteYtdlpCommand 实际执行yt-dlp命令的逻辑
+func (s *Service) doExecuteYtdlpCommand(url, videoID string) (string, error) {
 	videoJsonPath := s.getVideoJsonPath(videoID)
-	// 判断文件是否存在，如果存在则读取内容直接返回
+	
+	// 检查文件是否已存在
 	if _, statErr := os.Stat(videoJsonPath); statErr == nil {
 		// 文件存在，读取内容
 		content, readErr := os.ReadFile(videoJsonPath)
