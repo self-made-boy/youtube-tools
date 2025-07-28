@@ -42,9 +42,19 @@ RUN apt-get update && apt-get install -y \
     && add-apt-repository -y ppa:tomtomtom/yt-dlp \
     && apt-get update \
     && apt-get install -y yt-dlp \
-    && apt-get install protonvpn-cli \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# 安装ProtonVPN CLI
+RUN apt-get update && apt-get install -y \
+    curl \
+    gnupg \
+    && curl -fsSL https://repo.protonvpn.com/debian/dists/stable/public_key.asc | gpg --dearmor -o /usr/share/keyrings/protonvpn-keyring.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/protonvpn-keyring.gpg] https://repo.protonvpn.com/debian stable main" | tee /etc/apt/sources.list.d/protonvpn.list \
+    && apt-get update \
+    && apt-get install -y protonvpn-cli \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* 
 
 # 编译环境：用于构建golang应用
 FROM golang:1.24 AS builder
