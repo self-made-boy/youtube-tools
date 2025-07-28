@@ -36,11 +36,13 @@ ENV TZ=Asia/Shanghai
 # 继承环境变量设置
 RUN apt-get update && apt-get install -y \
     python3 \
+    python3-pip \
     software-properties-common \
     ffmpeg \
     && add-apt-repository -y ppa:tomtomtom/yt-dlp \
     && apt-get update \
     && apt-get install -y yt-dlp \
+    && apt install protonvpn-cli \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
