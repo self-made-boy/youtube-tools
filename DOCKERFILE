@@ -42,7 +42,7 @@ RUN apt-get update && apt-get install -y \
     && add-apt-repository -y ppa:tomtomtom/yt-dlp \
     && apt-get update \
     && apt-get install -y yt-dlp \
-    && apt install protonvpn-cli \
+    && apt-get install protonvpn-cli \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
