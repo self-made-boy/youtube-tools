@@ -47,10 +47,12 @@ RUN apt-get update && apt-get install -y \
 
 # 安装ProtonVPN CLI
 RUN apt-get update && apt-get install -y \
-    curl \
+    ca-certificates \
     gnupg \
+    lsb-release \
+    && mkdir -p /usr/share/keyrings \
     && curl -fsSL https://repo.protonvpn.com/debian/dists/stable/public_key.asc | gpg --dearmor -o /usr/share/keyrings/protonvpn-keyring.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/protonvpn-keyring.gpg] https://repo.protonvpn.com/debian stable main" | tee /etc/apt/sources.list.d/protonvpn.list \
+    && echo "deb [signed-by=/usr/share/keyrings/protonvpn-keyring.gpg] https://repo.protonvpn.com/debian stable main" > /etc/apt/sources.list.d/protonvpn.list \
     && apt-get update \
     && apt-get install -y protonvpn-cli \
     && apt-get clean \
